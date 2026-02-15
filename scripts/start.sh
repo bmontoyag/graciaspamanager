@@ -4,7 +4,7 @@ echo "🚀 Iniciando Gracias Spa Manager..."
 
 # 1. Iniciar Base de Datos (Docker)
 echo "📦 Levantando Base de Datos..."
-cd ~/app/backend
+cd ~/graciaspa/app/backend
 sudo docker-compose up -d
 sleep 5 # Esperar a que la DB esté lista
 

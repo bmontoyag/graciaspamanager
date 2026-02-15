@@ -9,7 +9,7 @@ pm2 delete all # Opcional: para limpiar la lista
 
 # 2. Detener Base de Datos (Docker)
 echo "📦 Deteniendo Base de Datos..."
-cd ~/app/backend
+cd ~/graciaspa/app/backend
 sudo docker-compose down
 
 echo "✅ Todos los servicios han sido detenidos."
