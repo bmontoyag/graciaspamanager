@@ -1,0 +1,274 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  YAPE
+  PLIN
+  TRANSFER
+}
+
+model Configuration {
+  id               Int      @id @default(autoincrement())
+  primaryColor     String?
+  backgroundColor  String?
+  sidebarColor     String?
+  themeMode        String?  // 'light' or 'dark'
+  logoUrl          String?  @db.Text
+  loginBgUrl       String?  @db.Text
+  
+  // Business Rules
+  openTime         String   @default("09:00")
+  closeTime        String   @default("21:00")
+  appointmentBuffer Int     @default(10) // Minutes between appointments
+
+  // Backup Configuration
+  backupEnabled    Boolean  @default(false)
+  backupFrequency  String   @default("daily") // daily, weekly, monthly
+  backupTime       String   @default("02:00") // HH:mm
+  backupEmail      String?
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model BlockedSlot {
+  id          Int      @id @default(autoincrement())
+  date        DateTime // Specific date, or null for recurring? Let's keep it specific for now.
+  startTime   String   // "HH:mm"
+  endTime     String   // "HH:mm"
+  reason      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model User {
+  id             Int      @id @default(autoincrement())
+  email          String   @unique
+  passwordHash   String
+  name           String
+  phoneNumber    String?  // For payments (Yape/Plin)
+  // role removed
+  roles          UserRole[]
+  fingerprintKey String?  // Stores a public key or identifier for biometric auth
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  appointmentsWorker Appointment[] @relation("WorkerAppointments")
+  attentions         AttentionWorker[] // Relation to AttentionWorker
+  expenses           Expense[]     @relation("WorkerExpenses")
+  commissionPercentage Decimal     @default(50.0) @db.Decimal(5, 2)
+}
+
+model Role { // RBAC Role
+  id          Int          @id @default(autoincrement())
+  name        String       @unique // e.g., "Admin", "Therapist", "Receptionist"
+  description String?
+  modules     RoleModule[]
+  users       UserRole[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Module { // System Module/Page
+  id          Int          @id @default(autoincrement())
+  key         String       @unique // e.g., "dashboard", "users", "reports"
+  name        String       // e.g., "Dashboard", "Usuarios", "Reportes"
+  roles       RoleModule[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model RoleModule {
+  roleId   Int
+  moduleId Int
+  role     Role   @relation(fields: [roleId], references: [id])
+  module   Module @relation(fields: [moduleId], references: [id])
+
+  @@id([roleId, moduleId])
+}
+
+model UserRole {
+  userId Int
+  roleId Int
+  user   User @relation(fields: [userId], references: [id])
+  role   Role @relation(fields: [roleId], references: [id])
+
+  @@id([userId, roleId])
+}
+
+model Client {
+  id            Int      @id @default(autoincrement())
+  name          String
+  phone         String?  // WhatsApp notifications
+  email         String?
+  birthday      DateTime?
+  loyaltyPoints Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  appointments Appointment[]
+  attentions   Attention[]
+}
+
+model ServiceCategory {
+  id          Int       @id @default(autoincrement())
+  name        String
+  description String?
+  services    Service[]
+}
+
+model Service {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  price       Decimal  @db.Decimal(10, 2)
+  durationMin Int      // Duration in minutes
+  isActive    Boolean  @default(true)
+  
+  categoryId  Int?
+  category    ServiceCategory? @relation(fields: [categoryId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  appointments Appointment[]
+  attentions   Attention[]
+}
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  price       Decimal  @db.Decimal(10, 2)
+  stock       Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Appointment {
+  id        Int               @id @default(autoincrement())
+  date      DateTime
+  status    AppointmentStatus @default(PENDING)
+  notes     String?
+  cost      Decimal           @default(0) @db.Decimal(10, 2) // Projected cost
+  duration  Int               @default(60) // Duration in minutes
+  
+  clientId  Int
+  client    Client  @relation(fields: [clientId], references: [id])
+  
+  workerId  Int
+  worker    User    @relation("WorkerAppointments", fields: [workerId], references: [id])
+  
+  serviceId Int
+  service   Service @relation(fields: [serviceId], references: [id])
+
+  attentions Attention[]
+  payments   Payment[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Attention {
+  id        Int      @id @default(autoincrement())
+  date      DateTime @default(now())
+  notes     String?
+  totalCost Decimal  @db.Decimal(10, 2)
+  
+  clientId  Int
+  client    Client   @relation(fields: [clientId], references: [id])
+  
+  workers   AttentionWorker[] // Support multiple workers
+
+  serviceId Int
+  service   Service  @relation(fields: [serviceId], references: [id])
+  
+  appointmentId Int?
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+
+  payments      Payment[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model AttentionWorker {
+  id               Int       @id @default(autoincrement())
+  
+  attentionId      Int
+  attention        Attention @relation(fields: [attentionId], references: [id])
+  
+  workerId         Int
+  worker           User      @relation(fields: [workerId], references: [id])
+  
+  commissionAmount Decimal   @db.Decimal(10, 2) @default(0) // Calculated commission
+  isPrimary        Boolean   @default(true) // To identify the main therapist if needed
+  
+  isPaid           Boolean   @default(false) // Track if commission has been paid
+  paidAt           DateTime? // When the commission was paid
+  expenseId        Int?      // Link to the expense record when paid
+
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@unique([attentionId, workerId]) // Prevent duplicate assignment
+}
+
+model Payment {
+  id            Int           @id @default(autoincrement())
+  amount        Decimal       @db.Decimal(10, 2)
+  date          DateTime      @default(now())
+  method        PaymentMethod @default(CASH)
+  type          PaymentType   @default(FULL)
+  notes         String?
+
+  appointmentId Int?
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+
+  attentionId   Int?
+  attention     Attention?   @relation(fields: [attentionId], references: [id])
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Expense {
+  id          Int      @id @default(autoincrement())
+  description String
+  amount      Decimal  @db.Decimal(10, 2)
+  date        DateTime @default(now())
+  category    String?  // Sueldo, Alquiler, Insumos, etc.
+  
+  workerId    Int?
+  worker      User?    @relation("WorkerExpenses", fields: [workerId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum PaymentType {
+  ADVANCE
+  FULL
+  RELICIDATION
+}

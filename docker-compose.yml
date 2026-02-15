@@ -1,0 +1,29 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: graciaspa_postgres
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: adminpassword
+      POSTGRES_DB: graciaspa_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./docker/postgres_data:/var/lib/postgresql/data
+    networks:
+      - graciaspa_net
+
+  adminer:
+    image: adminer
+    container_name: graciaspa_adminer
+    restart: always
+    ports:
+      - "8080:8080"
+    networks:
+      - graciaspa_net
+
+networks:
+  graciaspa_net:
+    driver: bridge

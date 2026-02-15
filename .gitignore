@@ -1,0 +1,52 @@
+# General
+.DS_Store
+Thumbs.db
+*.log
+node_modules/
+dist/
+build/
+.env
+.env.*
+!.env.example
+
+# NestJS / Backend
+backend/dist
+backend/node_modules
+backend/coverage
+backend/.elasticbeanstalk
+backend/.serverless
+
+# Next.js / Web Admin
+web-admin/.next/
+web-admin/out/
+web-admin/build
+web-admin/node_modules
+web-admin/.vercel
+
+# Flutter / Mobile
+mobile/.dart_tool/
+mobile/.idea/
+mobile/.vscode/
+mobile/android/.gradle
+mobile/android/captures/
+mobile/android/gradlew
+mobile/android/gradlew.bat
+mobile/android/local.properties
+mobile/build/
+mobile/ios/.symlinks/
+mobile/ios/Pods/
+mobile/ios/Runner.xcworkspace
+mobile/ios/Podfile.lock
+mobile/linux/flutter/ephemeral/
+mobile/macos/flutter/ephemeral/
+mobile/windows/flutter/ephemeral/
+mobile/test/__coverage__/
+
+# Docker
+docker/postgres_data/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
