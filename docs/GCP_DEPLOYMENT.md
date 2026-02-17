@@ -102,7 +102,7 @@ En la terminal SSH:
         restart: always
         environment:
           POSTGRES_USER: usuario_spa
-          POSTGRES_PASSWORD: password_seguro_123 # ¡CAMBIAR ESTO!
+          POSTGRES_PASSWORD: c5a077e67b74d72281c425802aa9de441e2458c2e8b756c7e1baf74ea56b401a # ¡CAMBIAR ESTO!
           POSTGRES_DB: graciaspa_db
         volumes:
           - db_data:/var/lib/postgresql/data
@@ -129,7 +129,7 @@ Recomendamos usar **Git** para bajar tu código.
 
 1.  Clonar tu repositorio:
     ```bash
-    git clone https://github.com/bmontoyag/graciaspa.git app
+    git clone https://github.com/bmontoyag/graciaspamanager.git app
     cd app
     ```
 
@@ -139,7 +139,7 @@ Recomendamos usar **Git** para bajar tu código.
     nano .env
     ```
     *Pegar tus variables de entorno, asegurando que `DATABASE_URL` apunte al servicio docker o localhost:*
-    `DATABASE_URL="postgresql://usuario_spa:password_seguro_123@localhost:5432/graciaspa_db?schema=public"`
+    `DATABASE_URL="postgresql://usuario_spa:c5a077e67b74d72281c425802aa9de441e2458c2e8b756c7e1baf74ea56b401a@localhost:5432/graciaspa_db?schema=public"`
 
 3.  Instalar dependencias y Compilar Backend:
     ```bash
@@ -153,7 +153,7 @@ Recomendamos usar **Git** para bajar tu código.
 4.  Usar **PM2** para correr el backend en segundo plano:
     ```bash
     sudo npm install -g pm2
-    pm2 start dist/main.js --name "backend"
+    pm2 start dist/src/main.js --name "backend"
     ```
 
 5.  Compilar Frontend (Web Admin):
