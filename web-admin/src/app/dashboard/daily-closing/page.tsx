@@ -266,102 +266,105 @@ export default function DailyClosingPage() {
                                         </tfoot>
                                     </table>
                                 </div>
-                        )}
                             </div>
+                        )}
+                    </div>
 
                     {/* Detailed Attentions */}
-                        <div className="bg-card border rounded-lg p-6 mb-6">
-                            <h2 className="text-xl font-bold mb-4">Detalle de Atenciones ({attentions.length})</h2>
-                            {attentions.length === 0 ? (
-                                <p className="text-muted-foreground text-center py-4">No hay atenciones registradas para esta fecha.</p>
-                            ) : (
-                                <div className="overflow-hidden rounded-lg border">
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-sm min-w-[600px]">
-                                            <thead className="bg-muted/50 border-b">
-                                                <tr>
-                                                    <th className="p-3 text-left font-medium">Cliente</th>
-                                                    <th className="p-3 text-left font-medium">Servicio</th>
-                                                    <th className="p-3 text-left font-medium">Personal</th>
-                                                    <th className="p-3 text-right font-medium">Costo</th>
+                    <div className="bg-card border rounded-lg p-6 mb-6">
+                        <h2 className="text-xl font-bold mb-4">Detalle de Atenciones ({attentions.length})</h2>
+                        {attentions.length === 0 ? (
+                            <p className="text-muted-foreground text-center py-4">No hay atenciones registradas para esta fecha.</p>
+                        ) : (
+                            <div className="overflow-hidden rounded-lg border">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm min-w-[600px]">
+                                        <thead className="bg-muted/50 border-b">
+                                            <tr>
+                                                <th className="p-3 text-left font-medium">Cliente</th>
+                                                <th className="p-3 text-left font-medium">Servicio</th>
+                                                <th className="p-3 text-left font-medium">Personal</th>
+                                                <th className="p-3 text-right font-medium">Costo</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {attentions.map((att) => (
+                                                <tr key={att.id} className="border-b hover:bg-muted/50 transition">
+                                                    <td className="p-3">{att.client?.name}</td>
+                                                    <td className="p-3 text-muted-foreground">{att.service?.name}</td>
+                                                    <td className="p-3">
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {att.workers?.map((w: any) => (
+                                                                <span key={w.id} className="bg-primary/10 text-primary px-2 py-0.5 rounded text-xs">
+                                                                    {w.worker?.name}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </td>
+                                                    <td className="p-3 text-right font-mono">S/ {Number(att.totalCost).toFixed(2)}</td>
                                                 </tr>
-                                            </thead>
-                                            <tbody>
-                                                {attentions.map((att) => (
-                                                    <tr key={att.id} className="border-b hover:bg-muted/50 transition">
-                                                        <td className="p-3">{att.client?.name}</td>
-                                                        <td className="p-3 text-muted-foreground">{att.service?.name}</td>
-                                                        <td className="p-3">
-                                                            <div className="flex flex-wrap gap-1">
-                                                                {att.workers?.map((w: any) => (
-                                                                    <span key={w.id} className="bg-primary/10 text-primary px-2 py-0.5 rounded text-xs">
-                                                                        {w.worker?.name}
-                                                                    </span>
-                                                                ))}
-                                                            </div>
-                                                        </td>
-                                                        <td className="p-3 text-right font-mono">S/ {Number(att.totalCost).toFixed(2)}</td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                        )}
+                                            ))}
+                                        </tbody>
+                                    </table>
                                 </div>
+                            </div>
+                        )}
+                    </div>
 
                     {/* Detailed Expenses */}
-                            <div className="bg-card border rounded-lg p-6">
-                                <h2 className="text-xl font-bold mb-4">Detalle de Gastos ({expenses.length})</h2>
-                                {expenses.length === 0 ? (
-                                    <p className="text-muted-foreground text-center py-4">No hay gastos registrados para esta fecha.</p>
-                                ) : (
-                                    <div className="overflow-hidden rounded-lg border">
-                                        <div className="overflow-x-auto">
-                                            <table className="w-full text-sm min-w-[500px]">
-                                                <thead className="bg-muted/50 border-b">
-                                                    <tr>
-                                                        <th className="p-3 text-left font-medium">Descripción</th>
-                                                        <th className="p-3 text-left font-medium">Categoría</th>
-                                                        <th className="p-3 text-right font-medium">Monto</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {expenses.map((exp) => (
-                                                        <tr key={exp.id} className="border-b hover:bg-muted/50 transition">
-                                                            <td className="p-3">{exp.description}</td>
-                                                            <td className="p-3">
-                                                                <span className="bg-secondary text-secondary-foreground px-2 py-1 rounded text-xs">
-                                                                    {exp.category}
-                                                                </span>
-                                                            </td>
-                                                            <td className="p-3 text-right font-mono text-red-600">S/ {Number(exp.amount).toFixed(2)}</td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
+                    <div className="bg-card border rounded-lg p-6">
+                        <h2 className="text-xl font-bold mb-4">Detalle de Gastos ({expenses.length})</h2>
+                        {expenses.length === 0 ? (
+                            <p className="text-muted-foreground text-center py-4">No hay gastos registrados para esta fecha.</p>
+                        ) : (
+                            <div className="overflow-hidden rounded-lg border">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm min-w-[500px]">
+                                        <thead className="bg-muted/50 border-b">
+                                            <tr>
+                                                <th className="p-3 text-left font-medium">Descripción</th>
+                                                <th className="p-3 text-left font-medium">Categoría</th>
+                                                <th className="p-3 text-right font-medium">Monto</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {expenses.map((exp) => (
+                                                <tr key={exp.id} className="border-b hover:bg-muted/50 transition">
+                                                    <td className="p-3">{exp.description}</td>
+                                                    <td className="p-3">
+                                                        <span className="bg-secondary text-secondary-foreground px-2 py-1 rounded text-xs">
+                                                            {exp.category}
+                                                        </span>
+                                                    </td>
+                                                    <td className="p-3 text-right font-mono text-red-600">S/ {Number(exp.amount).toFixed(2)}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         )}
-                                    </div>
+                    </div>
                 </>
             )}
 
-                            {/* Expense Dialog with Pre-filled Data */}
-                            {selectedTherapist && (
-                                <ExpenseDialog
-                                    isOpen={isExpenseDialogOpen}
-                                    onClose={() => {
-                                        setIsExpenseDialogOpen(false);
-                                        setSelectedTherapist(null);
-                                    }}
-                                    onSave={handlePaymentSaved}
-                                    expense={{
-                                        description: `Pago de comisión - ${selectedTherapist.name}`,
-                                        amount: selectedTherapist.totalCommission,
-                                        category: 'Salarios',
-                                        date: selectedDate
-                                    }}
-                                />
-                            )}
-                        </PageContainer>
-                        );
+            {/* Expense Dialog with Pre-filled Data */}
+            {selectedTherapist && (
+                <ExpenseDialog
+                    isOpen={isExpenseDialogOpen}
+                    onClose={() => {
+                        setIsExpenseDialogOpen(false);
+                        setSelectedTherapist(null);
+                    }}
+                    onSave={handlePaymentSaved}
+                    expense={{
+                        description: `Pago de comisión - ${selectedTherapist.name}`,
+                        amount: selectedTherapist.totalCommission,
+                        category: 'Salarios',
+                        date: selectedDate
+                    }}
+                />
+            )}
+        </PageContainer>
+    );
 }

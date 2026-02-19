@@ -146,16 +146,17 @@ export default function AttentionsPage() {
                         </tbody>
                     </table>
                 </div>
+            </div>
 
-                <AttentionDialog
-                    isOpen={isDialogOpen}
-                    onClose={() => {
-                        setIsDialogOpen(false);
-                        setSelectedAttention(null);
-                    }}
-                    onSave={fetchAttentions}
-                    attention={selectedAttention}
-                />
+            <AttentionDialog
+                isOpen={isDialogOpen}
+                onClose={() => {
+                    setIsDialogOpen(false);
+                    setSelectedAttention(null);
+                }}
+                onSave={fetchAttentions}
+                attention={selectedAttention}
+            />
         </PageContainer>
     );
 }

@@ -342,8 +342,9 @@ export default function AnnualReportPage() {
                                 </table>
                             </div>
                         </div>
-                    </>
+                    </div>
+                </>
             )}
-                </PageContainer>
-            );
+        </PageContainer>
+    );
 }
