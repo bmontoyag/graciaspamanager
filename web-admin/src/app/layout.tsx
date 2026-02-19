@@ -12,13 +12,14 @@ export default function RootLayout({
 }) {
   const pathname = usePathname();
   const isLoginPage = pathname === '/';
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
   useEffect(() => {
 
     // Fetch configuration from API
     const loadConfiguration = async () => {
       try {
-        const res = await fetch('http://localhost:3001/configuration');
+        const res = await fetch(`${API_URL}/configuration`);
         if (res.ok) {
           const config = await res.json();
 

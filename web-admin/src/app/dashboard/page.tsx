@@ -14,6 +14,7 @@ export default function DashboardPage() {
     });
     const [appointments, setAppointments] = useState<any[]>([]);
     const router = useRouter();
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
     useEffect(() => {
         // Try to get role from userRoles array or legacy userRole
@@ -42,7 +43,7 @@ export default function DashboardPage() {
         }
 
         // Fetch Stats
-        fetch('http://localhost:3001/dashboard/stats', { headers })
+        fetch(`${API_URL}/dashboard/stats`, { headers })
             .then(res => {
                 if (!res.ok) {
                     console.error('Stats fetch failed:', res.status, res.statusText);
@@ -57,7 +58,7 @@ export default function DashboardPage() {
             });
 
         // Fetch Today's Appointments
-        fetch('http://localhost:3001/dashboard/appointments', { headers })
+        fetch(`${API_URL}/dashboard/appointments`, { headers })
             .then(res => {
                 if (!res.ok) throw new Error('Failed to fetch appointments');
                 return res.json();
@@ -134,9 +135,9 @@ export default function DashboardPage() {
                                         <td className="p-3">{appt.worker?.name || '—'}</td>
                                         <td className="p-3">
                                             <span className={`px-2 py-1 rounded-full text-xs font-semibold ${appt.status === 'CONFIRMED' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                                                    appt.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                                                        appt.status === 'COMPLETED' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
-                                                            'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
+                                                appt.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                                                    appt.status === 'COMPLETED' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                                                        'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
                                                 }`}>
                                                 {appt.status === 'PENDING' ? 'Pendiente' :
                                                     appt.status === 'CONFIRMED' ? 'Confirmada' :

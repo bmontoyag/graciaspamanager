@@ -10,6 +10,7 @@ export default function LoginPage() {
   const [logoUrl, setLogoUrl] = useState<string>('');
   const [loginBgUrl, setLoginBgUrl] = useState<string>('');
   const router = useRouter();
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
   useEffect(() => {
     setMounted(true);
@@ -17,7 +18,7 @@ export default function LoginPage() {
     // Fetch configuration from API
     const loadConfiguration = async () => {
       try {
-        const res = await fetch('http://localhost:3001/configuration');
+        const res = await fetch(`${API_URL}/configuration`);
         if (res.ok) {
           const config = await res.json();
           if (config.logoUrl) setLogoUrl(config.logoUrl);
@@ -35,7 +36,7 @@ export default function LoginPage() {
     e.preventDefault();
 
     try {
-      const res = await fetch('http://localhost:3001/auth/login', {
+      const res = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
