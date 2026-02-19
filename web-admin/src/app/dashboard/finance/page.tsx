@@ -5,10 +5,11 @@ import { DollarSign, TrendingUp, TrendingDown, CreditCard } from 'lucide-react';
 import { PageContainer } from '@/components/layout/PageContainer';
 
 export default function FinancePage() {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     const [stats, setStats] = useState({ income: 0, expenses: 0, net: 0 });
 
     useEffect(() => {
-        fetch('http://localhost:3001/dashboard/finance')
+        fetch(`${API_URL}/dashboard/finance`)
             .then(res => res.json())
             .then(data => setStats(data))
             .catch(err => console.error('Error fetching finance:', err));

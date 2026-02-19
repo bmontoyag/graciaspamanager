@@ -14,6 +14,7 @@ export default function DashboardLayout({
     const [sidebarColor, setSidebarColor] = useState('#2C3E50');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const router = useRouter();
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
     useEffect(() => {
         // We now use permissions for access control, but we can check for token/userId existence
@@ -31,7 +32,7 @@ export default function DashboardLayout({
         // Fetch sidebar color from API
         const loadSidebarColor = async () => {
             try {
-                const res = await fetch('http://localhost:3001/configuration');
+                const res = await fetch(`${API_URL}/configuration`);
                 if (res.ok) {
                     const config = await res.json();
                     if (config.sidebarColor) {

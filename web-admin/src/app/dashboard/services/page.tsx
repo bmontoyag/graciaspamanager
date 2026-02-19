@@ -6,6 +6,7 @@ import ServiceDialog from '@/components/services/ServiceDialog';
 import { PageContainer } from '@/components/layout/PageContainer';
 
 export default function ServicesPage() {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     const [services, setServices] = useState<any[]>([]);
     const [categories, setCategories] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -17,7 +18,7 @@ export default function ServicesPage() {
 
     const fetchServices = () => {
         setLoading(true);
-        fetch('http://localhost:3001/services')
+        fetch(`${API_URL}/services`)
             .then(res => res.json())
             .then(data => {
                 setServices(Array.isArray(data) ? data : []);
@@ -31,7 +32,7 @@ export default function ServicesPage() {
     };
 
     const fetchCategories = () => {
-        fetch('http://localhost:3001/service-categories')
+        fetch(`${API_URL}/service-categories`)
             .then(res => res.json())
             .then(data => setCategories(Array.isArray(data) ? data : []))
             .catch(err => console.error('Error fetching categories:', err));
@@ -51,7 +52,7 @@ export default function ServicesPage() {
         if (!confirm('¿Está seguro de eliminar este servicio?')) return;
 
         try {
-            const res = await fetch(`http://localhost:3001/services/${id}`, {
+            const res = await fetch(`${API_URL}/services/${id}`, {
                 method: 'DELETE'
             });
             if (!res.ok) throw new Error('Failed to delete');
@@ -66,7 +67,7 @@ export default function ServicesPage() {
         if (!newCategoryName.trim()) return;
 
         try {
-            const res = await fetch('http://localhost:3001/service-categories', {
+            const res = await fetch(`${API_URL}/service-categories`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: newCategoryName })

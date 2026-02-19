@@ -6,6 +6,7 @@ import ExpenseDialog from '@/components/expenses/ExpenseDialog';
 import { PageContainer } from '@/components/layout/PageContainer';
 
 export default function ExpensesPage() {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     const [expenses, setExpenses] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -14,7 +15,7 @@ export default function ExpensesPage() {
 
     const fetchExpenses = () => {
         setLoading(true);
-        fetch('http://localhost:3001/expenses')
+        fetch(`${API_URL}/expenses`)
             .then(res => res.json())
             .then(data => {
                 setExpenses(Array.isArray(data) ? data : []);
@@ -40,7 +41,7 @@ export default function ExpensesPage() {
         if (!confirm('¿Está seguro de eliminar este gasto?')) return;
 
         try {
-            const res = await fetch(`http://localhost:3001/expenses/${id}`, {
+            const res = await fetch(`${API_URL}/expenses/${id}`, {
                 method: 'DELETE'
             });
             if (!res.ok) throw new Error('Failed to delete');

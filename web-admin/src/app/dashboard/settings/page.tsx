@@ -16,6 +16,7 @@ const PREDEFINED_THEMES = [
 ];
 
 export default function SettingsPage() {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     // Colors
     const [primaryColor, setPrimaryColor] = useState('#000000');
     const [sidebarColor, setSidebarColor] = useState('#000000');
@@ -36,7 +37,7 @@ export default function SettingsPage() {
 
     const loadConfiguration = async () => {
         try {
-            const res = await fetch('http://localhost:3001/configuration');
+            const res = await fetch(`${API_URL}/configuration`);
             if (res.ok) {
                 const config = await res.json();
                 if (config.primaryColor) setPrimaryColor(config.primaryColor);
@@ -92,7 +93,7 @@ export default function SettingsPage() {
             };
 
             const token = localStorage.getItem('accessToken');
-            const res = await fetch('http://localhost:3001/configuration', {
+            const res = await fetch(`${API_URL}/configuration`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',

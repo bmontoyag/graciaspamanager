@@ -11,6 +11,7 @@ interface ServiceDialogProps {
 }
 
 export default function ServiceDialog({ isOpen, onClose, onSave, service }: ServiceDialogProps) {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     const [categories, setCategories] = useState<any[]>([]);
     const [formData, setFormData] = useState({
         name: '',
@@ -23,7 +24,7 @@ export default function ServiceDialog({ isOpen, onClose, onSave, service }: Serv
 
     useEffect(() => {
         if (isOpen) {
-            fetch('http://localhost:3001/service-categories')
+            fetch(`${API_URL}/service-categories`)
                 .then(res => res.json())
                 .then(data => setCategories(Array.isArray(data) ? data : []))
                 .catch(err => console.error('Error fetching categories:', err));
@@ -73,8 +74,8 @@ export default function ServiceDialog({ isOpen, onClose, onSave, service }: Serv
             console.log('Sending service payload:', payload);
 
             const url = service
-                ? `http://localhost:3001/services/${service.id}`
-                : 'http://localhost:3001/services';
+                ? `${API_URL}/services/${service.id}`
+                : `${API_URL}/services`;
 
             const res = await fetch(url, {
                 method: service ? 'PATCH' : 'POST',

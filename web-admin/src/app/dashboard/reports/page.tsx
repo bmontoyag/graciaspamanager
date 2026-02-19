@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 
 
 export default function ReportsPage() {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     const router = useRouter();
     const [attentions, setAttentions] = useState<any[]>([]);
     const [expenses, setExpenses] = useState<any[]>([]);
@@ -48,7 +49,7 @@ export default function ReportsPage() {
 
     const fetchConfiguration = async () => {
         try {
-            const res = await fetch('http://localhost:3001/configuration');
+            const res = await fetch(`${API_URL}/configuration`);
             if (res.ok) {
                 const config = await res.json();
                 const primary = config.primaryColor || '#8B7355';
@@ -82,9 +83,9 @@ export default function ReportsPage() {
     const fetchFilterOptions = async () => {
         try {
             const [therapistsRes, servicesRes, clientsRes] = await Promise.all([
-                fetch('http://localhost:3001/users'),
-                fetch('http://localhost:3001/services'),
-                fetch('http://localhost:3001/clients')
+                fetch(`${API_URL}/users`),
+                fetch(`${API_URL}/services`),
+                fetch(`${API_URL}/clients`)
             ]);
 
             setTherapists(await therapistsRes.json());
@@ -99,8 +100,8 @@ export default function ReportsPage() {
         setLoading(true);
         try {
             const [attentionsRes, expensesRes] = await Promise.all([
-                fetch('http://localhost:3001/attentions'),
-                fetch('http://localhost:3001/expenses')
+                fetch(`${API_URL}/attentions`),
+                fetch(`${API_URL}/expenses`)
             ]);
 
             let attentionsData = await attentionsRes.json();

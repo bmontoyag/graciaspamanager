@@ -11,6 +11,7 @@ interface ExpenseDialogProps {
 }
 
 export default function ExpenseDialog({ isOpen, onClose, onSave, expense }: ExpenseDialogProps) {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     const [formData, setFormData] = useState({
         description: '',
         amount: '',
@@ -55,8 +56,8 @@ export default function ExpenseDialog({ isOpen, onClose, onSave, expense }: Expe
             console.log('Sending expense payload:', payload);
 
             const url = expense
-                ? `http://localhost:3001/expenses/${expense.id}`
-                : 'http://localhost:3001/expenses';
+                ? `${API_URL}/expenses/${expense.id}`
+                : `${API_URL}/expenses`;
 
             const res = await fetch(url, {
                 method: expense ? 'PATCH' : 'POST',

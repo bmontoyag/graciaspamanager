@@ -6,6 +6,7 @@ import UserDialog from '../../../components/users/UserDialog';
 import { PageContainer } from '@/components/layout/PageContainer';
 
 export default function UsersPage() {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -14,7 +15,7 @@ export default function UsersPage() {
 
     const fetchUsers = () => {
         setLoading(true);
-        fetch('http://localhost:3001/users')
+        fetch(`${API_URL}/users`)
             .then(res => res.json())
             .then(data => {
                 setUsers(Array.isArray(data) ? data : []);
@@ -40,7 +41,7 @@ export default function UsersPage() {
         if (!confirm('¿Está seguro de eliminar este usuario?')) return;
 
         try {
-            const res = await fetch(`http://localhost:3001/users/${id}`, {
+            const res = await fetch(`${API_URL}/users/${id}`, {
                 method: 'DELETE'
             });
             if (!res.ok) throw new Error('Failed to delete');

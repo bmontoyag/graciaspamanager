@@ -6,6 +6,7 @@ import AttentionDialog from '@/components/attentions/AttentionDialog';
 import { PageContainer } from '@/components/layout/PageContainer';
 
 export default function AttentionsPage() {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     const [attentions, setAttentions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -14,7 +15,7 @@ export default function AttentionsPage() {
 
     const fetchAttentions = () => {
         setLoading(true);
-        fetch('http://localhost:3001/attentions')
+        fetch(`${API_URL}/attentions`)
             .then(res => res.json())
             .then(data => {
                 setAttentions(Array.isArray(data) ? data : []);
@@ -40,7 +41,7 @@ export default function AttentionsPage() {
         if (!confirm('¿Está seguro de eliminar esta atención?')) return;
 
         try {
-            const res = await fetch(`http://localhost:3001/attentions/${id}`, {
+            const res = await fetch(`${API_URL}/attentions/${id}`, {
                 method: 'DELETE'
             });
             if (!res.ok) {

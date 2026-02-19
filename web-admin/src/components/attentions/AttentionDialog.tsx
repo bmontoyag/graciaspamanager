@@ -11,6 +11,7 @@ interface AttentionDialogProps {
 }
 
 export default function AttentionDialog({ isOpen, onClose, onSave, attention }: AttentionDialogProps) {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     const [clients, setClients] = useState<any[]>([]);
     const [services, setServices] = useState<any[]>([]);
     const [workers, setWorkers] = useState<any[]>([]);
@@ -29,10 +30,10 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
     useEffect(() => {
         if (isOpen) {
             Promise.all([
-                fetch('http://localhost:3001/clients').then(res => res.json()),
-                fetch('http://localhost:3001/services').then(res => res.json()),
-                fetch('http://localhost:3001/users').then(res => res.json()),
-                fetch('http://localhost:3001/appointments').then(res => res.json())
+                fetch(`${API_URL}/clients`).then(res => res.json()),
+                fetch(`${API_URL}/services`).then(res => res.json()),
+                fetch(`${API_URL}/users`).then(res => res.json()),
+                fetch(`${API_URL}/appointments`).then(res => res.json())
             ]).then(([clientsData, servicesData, usersData, appointmentsData]) => {
                 setClients(clientsData);
                 setServices(servicesData);
@@ -97,8 +98,8 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
             }
 
             const url = attention
-                ? `http://localhost:3001/attentions/${attention.id}`
-                : 'http://localhost:3001/attentions';
+                ? `${API_URL}/attentions/${attention.id}`
+                : `${API_URL}/attentions`;
 
             const res = await fetch(url, {
                 method: attention ? 'PATCH' : 'POST',

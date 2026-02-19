@@ -10,6 +10,7 @@ import {
 } from 'recharts';
 
 export default function AnnualReportPage() {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
@@ -49,7 +50,7 @@ export default function AnnualReportPage() {
 
     const fetchConfiguration = async () => {
         try {
-            const res = await fetch('http://localhost:3001/configuration');
+            const res = await fetch(`${API_URL}/configuration`);
             if (res.ok) {
                 const config = await res.json();
                 const primary = config.primaryColor || '#8B7355';
@@ -80,8 +81,8 @@ export default function AnnualReportPage() {
         setLoading(true);
         try {
             const [attentionsRes, expensesRes] = await Promise.all([
-                fetch('http://localhost:3001/attentions'),
-                fetch('http://localhost:3001/expenses')
+                fetch(`${API_URL}/attentions`),
+                fetch(`${API_URL}/expenses`)
             ]);
 
             const attentions: any[] = await attentionsRes.json();

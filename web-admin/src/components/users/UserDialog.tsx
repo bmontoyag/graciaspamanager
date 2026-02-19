@@ -16,6 +16,7 @@ interface UserDialogProps {
 }
 
 export default function UserDialog({ isOpen, onClose, onSave, user }: UserDialogProps) {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -28,7 +29,7 @@ export default function UserDialog({ isOpen, onClose, onSave, user }: UserDialog
 
     useEffect(() => {
         // Fetch roles
-        fetch('http://localhost:3001/roles')
+        fetch(`${API_URL}/roles`)
             .then(res => res.json())
             .then(data => setRoles(data))
             .catch(err => console.error('Error fetching roles:', err));
@@ -91,8 +92,8 @@ export default function UserDialog({ isOpen, onClose, onSave, user }: UserDialog
             }
 
             const url = user
-                ? `http://localhost:3001/users/${user.id}`
-                : 'http://localhost:3001/users';
+                ? `${API_URL}/users/${user.id}`
+                : `${API_URL}/users`;
 
             const res = await fetch(url, {
                 method: user ? 'PATCH' : 'POST',

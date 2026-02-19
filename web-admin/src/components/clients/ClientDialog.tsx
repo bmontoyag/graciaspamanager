@@ -11,6 +11,7 @@ interface ClientDialogProps {
 }
 
 export default function ClientDialog({ isOpen, onClose, onSave, client }: ClientDialogProps) {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     const [formData, setFormData] = useState({
         name: '',
         phone: '',
@@ -54,8 +55,8 @@ export default function ClientDialog({ isOpen, onClose, onSave, client }: Client
             };
 
             const url = client
-                ? `http://localhost:3001/clients/${client.id}`
-                : 'http://localhost:3001/clients';
+                ? `${API_URL}/clients/${client.id}`
+                : `${API_URL}/clients`;
 
             const res = await fetch(url, {
                 method: client ? 'PATCH' : 'POST',

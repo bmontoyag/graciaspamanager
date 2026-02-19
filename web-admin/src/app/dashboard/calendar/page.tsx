@@ -14,6 +14,7 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import { useRef } from 'react';
 
 export default function CalendarPage() {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     const [appointments, setAppointments] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -31,8 +32,8 @@ export default function CalendarPage() {
         setLoading(true);
         try {
             const [appointmentsRes, configRes] = await Promise.all([
-                fetch('http://localhost:3001/appointments'),
-                fetch('http://localhost:3001/configuration')
+                fetch(`${API_URL}/appointments`),
+                fetch(`${API_URL}/configuration`)
             ]);
 
             const appointmentsData = await appointmentsRes.json();

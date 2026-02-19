@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { User, Lock, Save, Eye, EyeOff } from 'lucide-react';
 
 export default function ProfilePage() {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     const [userId, setUserId] = useState<string | null>(null);
     const [userData, setUserData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -37,7 +38,7 @@ export default function ProfilePage() {
     const fetchUserData = async (id: string) => {
         try {
             console.log('Fetching user data for ID:', id);
-            const res = await fetch(`http://localhost:3001/users/${id}`);
+            const res = await fetch(`${API_URL}/users/${id}`);
 
             if (!res.ok) {
                 throw new Error(`HTTP error! status: ${res.status}`);
@@ -71,7 +72,7 @@ export default function ProfilePage() {
     const handleUpdateProfile = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const res = await fetch(`http://localhost:3001/users/${userId}`, {
+            const res = await fetch(`${API_URL}/users/${userId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -104,7 +105,7 @@ export default function ProfilePage() {
         }
 
         try {
-            const res = await fetch(`http://localhost:3001/users/${userId}`, {
+            const res = await fetch(`${API_URL}/users/${userId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

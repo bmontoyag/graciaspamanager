@@ -18,6 +18,7 @@ interface AppointmentDialogProps {
 }
 
 export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate, appointment, config }: AppointmentDialogProps) {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     const [clients, setClients] = useState<any[]>([]);
     const [services, setServices] = useState<any[]>([]);
     const [workers, setWorkers] = useState<any[]>([]);
@@ -36,9 +37,9 @@ export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate
     useEffect(() => {
         if (isOpen) {
             Promise.all([
-                fetch('http://localhost:3001/clients').then(res => res.json()),
-                fetch('http://localhost:3001/services').then(res => res.json()),
-                fetch('http://localhost:3001/users').then(res => res.json())
+                fetch(`${API_URL}/clients`).then(res => res.json()),
+                fetch(`${API_URL}/services`).then(res => res.json()),
+                fetch(`${API_URL}/users`).then(res => res.json())
             ]).then(([clientsData, servicesData, usersData]) => {
                 setClients(Array.isArray(clientsData) ? clientsData : []);
                 setServices(Array.isArray(servicesData) ? servicesData : []);
@@ -110,8 +111,8 @@ export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate
             console.log('Sending appointment payload:', payload);
 
             const url = appointment
-                ? `http://localhost:3001/appointments/${appointment.id}`
-                : 'http://localhost:3001/appointments';
+                ? `${API_URL}/appointments/${appointment.id}`
+                : `${API_URL}/appointments`;
 
             const res = await fetch(url, {
                 method: appointment ? 'PATCH' : 'POST',

@@ -11,6 +11,7 @@ import { Database, Download, Mail, Clock, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function BackupPage() {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     const [loading, setLoading] = useState(false);
     const [config, setConfig] = useState({
         backupEnabled: false,
@@ -21,7 +22,7 @@ export default function BackupPage() {
 
     useEffect(() => {
         // Fetch current config
-        fetch('http://localhost:3001/configuration')
+        fetch(`${API_URL}/configuration`)
             .then(res => res.json())
             .then(data => {
                 if (data) {
@@ -40,7 +41,7 @@ export default function BackupPage() {
         try {
             setLoading(true);
             const token = localStorage.getItem('accessToken');
-            const response = await fetch('http://localhost:3001/backup/download', {
+            const response = await fetch(`${API_URL}/backup/download`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -69,7 +70,7 @@ export default function BackupPage() {
         try {
             setLoading(true);
             const token = localStorage.getItem('accessToken');
-            const res = await fetch('http://localhost:3001/configuration', {
+            const res = await fetch(`${API_URL}/configuration`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',

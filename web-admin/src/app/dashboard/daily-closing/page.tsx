@@ -6,6 +6,7 @@ import ExpenseDialog from '../../../components/expenses/ExpenseDialog';
 import { PageContainer } from '@/components/layout/PageContainer';
 
 export default function DailyClosingPage() {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
     const [attentions, setAttentions] = useState<any[]>([]);
     const [expenses, setExpenses] = useState<any[]>([]);
@@ -21,8 +22,8 @@ export default function DailyClosingPage() {
         setLoading(true);
         try {
             const [attentionsRes, expensesRes] = await Promise.all([
-                fetch('http://localhost:3001/attentions'),
-                fetch('http://localhost:3001/expenses')
+                fetch(`${API_URL}/attentions`),
+                fetch(`${API_URL}/expenses`)
             ]);
 
             const attentionsData = await attentionsRes.json();
@@ -101,7 +102,7 @@ export default function DailyClosingPage() {
         if (selectedTherapist) {
             try {
                 const updatePromises = selectedTherapist.workerRecords.map((record: any) =>
-                    fetch(`http://localhost:3001/attention-workers/${record.id}`, {
+                    fetch(`${API_URL}/attention-workers/${record.id}`, {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({

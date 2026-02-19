@@ -12,6 +12,7 @@ import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function RolesPage() {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     const [roles, setRoles] = useState<any[]>([]);
     const [modules, setModules] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -30,7 +31,7 @@ export default function RolesPage() {
 
     const fetchRoles = async () => {
         try {
-            const res = await fetch('http://localhost:3001/roles');
+            const res = await fetch(`${API_URL}/roles`);
             if (res.ok) {
                 const data = await res.json();
                 setRoles(data);
@@ -44,7 +45,7 @@ export default function RolesPage() {
 
     const fetchModules = async () => {
         try {
-            const res = await fetch('http://localhost:3001/modules');
+            const res = await fetch(`${API_URL}/modules`);
             if (res.ok) {
                 const data = await res.json();
                 setModules(data);
@@ -77,8 +78,8 @@ export default function RolesPage() {
         try {
             const method = currentRole ? 'PATCH' : 'POST';
             const url = currentRole
-                ? `http://localhost:3001/roles/${currentRole.id}`
-                : 'http://localhost:3001/roles';
+                ? `${API_URL}/roles/${currentRole.id}`
+                : `${API_URL}/roles`;
 
             const res = await fetch(url, {
                 method,
@@ -104,7 +105,7 @@ export default function RolesPage() {
     const handleDelete = async (id: number) => {
         if (!confirm('Are you sure you want to delete this role?')) return;
         try {
-            const res = await fetch(`http://localhost:3001/roles/${id}`, {
+            const res = await fetch(`${API_URL}/roles/${id}`, {
                 method: 'DELETE',
             });
             if (res.ok) {

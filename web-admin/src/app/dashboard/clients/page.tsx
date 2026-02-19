@@ -15,6 +15,7 @@ interface Client {
 }
 
 export default function ClientsPage() {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     const [clients, setClients] = useState<Client[]>([]);
     const [loading, setLoading] = useState(true);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -22,7 +23,7 @@ export default function ClientsPage() {
 
     const fetchClients = () => {
         setLoading(true);
-        fetch('http://localhost:3001/clients')
+        fetch(`${API_URL}/clients`)
             .then((res) => res.json())
             .then((data) => {
                 setClients(Array.isArray(data) ? data : []);

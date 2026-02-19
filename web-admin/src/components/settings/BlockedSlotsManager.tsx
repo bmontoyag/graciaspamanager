@@ -12,6 +12,7 @@ interface BlockedSlot {
 }
 
 export default function BlockedSlotsManager() {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     const [slots, setSlots] = useState<BlockedSlot[]>([]);
     const [loading, setLoading] = useState(false);
 
@@ -24,7 +25,7 @@ export default function BlockedSlotsManager() {
 
     const fetchSlots = async () => {
         try {
-            const res = await fetch('http://localhost:3001/blocked-slots');
+            const res = await fetch(`${API_URL}/blocked-slots`);
             if (res.ok) {
                 const data = await res.json();
                 setSlots(data);
@@ -42,7 +43,7 @@ export default function BlockedSlotsManager() {
         e.preventDefault();
         setLoading(true);
         try {
-            const res = await fetch('http://localhost:3001/blocked-slots', {
+            const res = await fetch(`${API_URL}/blocked-slots`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
@@ -67,7 +68,7 @@ export default function BlockedSlotsManager() {
     const handleDelete = async (id: number) => {
         if (!confirm('¿Estás seguro de eliminar este bloqueo?')) return;
         try {
-            await fetch(`http://localhost:3001/blocked-slots/${id}`, { method: 'DELETE' });
+            await fetch(`${API_URL}/blocked-slots/${id}`, { method: 'DELETE' });
             fetchSlots();
         } catch (error) {
             console.error('Error deleting blocked slot:', error);
