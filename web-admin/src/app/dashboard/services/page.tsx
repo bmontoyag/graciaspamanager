@@ -75,11 +75,43 @@ export default function ServicesPage() {
             if (!res.ok) throw new Error('Failed to create category');
 
             setNewCategoryName('');
-            setShowCategoryForm(false);
+            // setShowCategoryForm(false); // Keep open to add more or manage
             fetchCategories();
         } catch (error) {
             console.error('Error creating category:', error);
             alert('Error al crear la categoría');
+        }
+    };
+
+    const handleDeleteCategory = async (id: number) => {
+        if (!confirm('¿Está seguro de eliminar esta categoría?')) return;
+        try {
+            const res = await fetch(`${API_URL}/service-categories/${id}`, {
+                method: 'DELETE'
+            });
+            if (!res.ok) throw new Error('Failed to delete category');
+            fetchCategories();
+        } catch (error) {
+            console.error('Error deleting category:', error);
+            alert('Error al eliminar la categoría');
+        }
+    };
+
+    const handleEditCategory = async (cat: any) => {
+        const newName = prompt('Nuevo nombre para la categoría:', cat.name);
+        if (!newName || newName === cat.name) return;
+
+        try {
+            const res = await fetch(`${API_URL}/service-categories/${cat.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: newName })
+            });
+            if (!res.ok) throw new Error('Failed to update category');
+            fetchCategories();
+        } catch (error) {
+            console.error('Error updating category:', error);
+            alert('Error al actualizar la categoría');
         }
     };
 
@@ -133,9 +165,21 @@ export default function ServicesPage() {
                     </div>
                     <div className="flex flex-wrap gap-2">
                         {categories.map(cat => (
-                            <span key={cat.id} className="bg-muted px-3 py-1 rounded-full text-sm">
-                                {cat.name}
-                            </span>
+                            <div key={cat.id} className="flex items-center gap-1 bg-muted px-3 py-1 rounded-full text-sm group">
+                                <span>{cat.name}</span>
+                                <button
+                                    onClick={() => handleEditCategory(cat)}
+                                    className="opacity-0 group-hover:opacity-100 p-1 hover:text-blue-600 transition-opacity"
+                                >
+                                    <Edit className="h-3 w-3" />
+                                </button>
+                                <button
+                                    onClick={() => handleDeleteCategory(cat.id)}
+                                    className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-600 transition-opacity"
+                                >
+                                    <Trash2 className="h-3 w-3" />
+                                </button>
+                            </div>
                         ))}
                     </div>
                 </div>
