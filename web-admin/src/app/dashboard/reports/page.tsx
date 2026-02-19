@@ -482,7 +482,7 @@ export default function ReportsPage() {
                                                 <Cell key={`cell-${index}`} fill={configColors.chartPalette[index % configColors.chartPalette.length]} />
                                             ))}
                                         </Pie>
-                                        <Tooltip formatter={(value: number) => `S/ ${value.toFixed(2)}`} />
+                                        <Tooltip formatter={(value: any) => `S/ ${Number(value).toFixed(2)}`} />
                                         <Legend />
                                     </PieChart>
                                 </ResponsiveContainer>
@@ -512,7 +512,7 @@ export default function ReportsPage() {
                                                     <Cell key={`cell-${index}`} fill={configColors.chartPalette[index % configColors.chartPalette.length]} />
                                                 ))}
                                             </Pie>
-                                            <Tooltip formatter={(value: number) => `S/ ${value.toFixed(2)}`} />
+                                            <Tooltip formatter={(value: any) => `S/ ${Number(value).toFixed(2)}`} />
                                             <Legend />
                                         </PieChart>
                                     </ResponsiveContainer>
