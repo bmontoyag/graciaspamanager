@@ -52,8 +52,12 @@ export default function ServicesPage() {
         if (!confirm('¿Está seguro de eliminar este servicio?')) return;
 
         try {
+            const token = localStorage.getItem('accessToken');
             const res = await fetch(`${API_URL}/services/${id}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
             });
             if (!res.ok) throw new Error('Failed to delete');
             fetchServices();
@@ -67,9 +71,13 @@ export default function ServicesPage() {
         if (!newCategoryName.trim()) return;
 
         try {
+            const token = localStorage.getItem('accessToken');
             const res = await fetch(`${API_URL}/service-categories`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({ name: newCategoryName })
             });
             if (!res.ok) throw new Error('Failed to create category');
@@ -86,8 +94,12 @@ export default function ServicesPage() {
     const handleDeleteCategory = async (id: number) => {
         if (!confirm('¿Está seguro de eliminar esta categoría?')) return;
         try {
+            const token = localStorage.getItem('accessToken');
             const res = await fetch(`${API_URL}/service-categories/${id}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
             });
             if (!res.ok) throw new Error('Failed to delete category');
             fetchCategories();
@@ -102,9 +114,13 @@ export default function ServicesPage() {
         if (!newName || newName === cat.name) return;
 
         try {
+            const token = localStorage.getItem('accessToken');
             const res = await fetch(`${API_URL}/service-categories/${cat.id}`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({ name: newName })
             });
             if (!res.ok) throw new Error('Failed to update category');

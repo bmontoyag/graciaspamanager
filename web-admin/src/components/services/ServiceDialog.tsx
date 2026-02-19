@@ -77,9 +77,13 @@ export default function ServiceDialog({ isOpen, onClose, onSave, service }: Serv
                 ? `${API_URL}/services/${service.id}`
                 : `${API_URL}/services`;
 
+            const token = localStorage.getItem('accessToken');
             const res = await fetch(url, {
                 method: service ? 'PATCH' : 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify(payload)
             });
 
