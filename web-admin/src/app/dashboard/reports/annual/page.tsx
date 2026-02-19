@@ -259,7 +259,7 @@ export default function AnnualReportPage() {
                                             cx="50%"
                                             cy="50%"
                                             labelLine={false}
-                                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                            label={({ name, percent }: any) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
                                             outerRadius={100}
                                             fill="#8884d8"
                                             dataKey="value"
@@ -268,7 +268,7 @@ export default function AnnualReportPage() {
                                                 <Cell key={`cell-${index}`} fill={configColors.chartPalette[index % configColors.chartPalette.length]} />
                                             ))}
                                         </Pie>
-                                        <Tooltip formatter={(value: number) => `S/ ${value.toFixed(2)}`} />
+                                        <Tooltip formatter={(value: any) => `S/ ${Number(value).toFixed(2)}`} />
                                         <Legend />
                                     </PieChart>
                                 </ResponsiveContainer>
@@ -287,7 +287,7 @@ export default function AnnualReportPage() {
                                                 cx="50%"
                                                 cy="50%"
                                                 labelLine={false}
-                                                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                                label={({ name, percent }: any) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
                                                 outerRadius={100}
                                                 fill="#8884d8"
                                                 dataKey="value"
@@ -296,7 +296,7 @@ export default function AnnualReportPage() {
                                                     <Cell key={`cell-${index}`} fill={configColors.chartPalette[index % configColors.chartPalette.length]} />
                                                 ))}
                                             </Pie>
-                                            <Tooltip formatter={(value: number) => `S/ ${value.toFixed(2)}`} />
+                                            <Tooltip formatter={(value: any) => `S/ ${Number(value).toFixed(2)}`} />
                                             <Legend />
                                         </PieChart>
                                     </ResponsiveContainer>
