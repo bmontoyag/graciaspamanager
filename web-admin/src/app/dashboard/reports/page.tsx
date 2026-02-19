@@ -533,33 +533,34 @@ export default function ReportsPage() {
                             <p className="text-muted-foreground text-center py-4">No hay datos disponibles.</p>
                         ) : (
                             <div className="overflow-hidden rounded-lg border">
-                                <table className="w-full text-sm">
-                                    <thead className="bg-muted/50 border-b">
-                                        <tr>
-                                            <th className="p-4 text-left font-medium">Servicio</th>
-                                            <th className="p-4 text-center font-medium">Cantidad</th>
-                                            <th className="p-4 text-right font-medium">Ingresos Totales</th>
-                                            <th className="p-4 text-right font-medium">% del Total</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {serviceList.map((service: any) => (
-                                            <tr key={service.id} className="border-b hover:bg-muted/50 transition">
-                                                <td className="p-4 font-medium">{service.name}</td>
-                                                <td className="p-4 text-center">{service.count}</td>
-                                                <td className="p-4 text-right font-mono">S/ {service.revenue.toFixed(2)}</td>
-                                                <td className="p-4 text-right font-mono text-muted-foreground">
-                                                    {totalIncome > 0 ? ((service.revenue / totalIncome) * 100).toFixed(1) : 0}%
-                                                </td>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm min-w-[500px]">
+                                        <thead className="bg-muted/50 border-b">
+                                            <tr>
+                                                <th className="p-4 text-left font-medium">Servicio</th>
+                                                <th className="p-4 text-center font-medium">Cantidad</th>
+                                                <th className="p-4 text-right font-medium">Ingresos Totales</th>
+                                                <th className="p-4 text-right font-medium">% del Total</th>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                                        </thead>
+                                        <tbody>
+                                            {serviceList.map((service: any) => (
+                                                <tr key={service.id} className="border-b hover:bg-muted/50 transition">
+                                                    <td className="p-4 font-medium">{service.name}</td>
+                                                    <td className="p-4 text-center">{service.count}</td>
+                                                    <td className="p-4 text-right font-mono">S/ {service.revenue.toFixed(2)}</td>
+                                                    <td className="p-4 text-right font-mono text-muted-foreground">
+                                                        {totalIncome > 0 ? ((service.revenue / totalIncome) * 100).toFixed(1) : 0}%
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
                         )}
-                    </div>
+                            </div>
                 </>
             )}
-        </PageContainer>
-    );
+                </PageContainer>
+            );
 }

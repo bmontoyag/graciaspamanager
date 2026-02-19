@@ -121,12 +121,12 @@ export default function ServicesPage() {
 
     return (
         <PageContainer>
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                 <h1 className="text-3xl font-serif font-bold">Servicios</h1>
-                <div className="flex gap-2">
+                <div className="flex gap-2 w-full sm:w-auto">
                     <button
                         onClick={() => setShowCategoryForm(!showCategoryForm)}
-                        className="bg-secondary text-secondary-foreground px-4 py-2 rounded-md flex items-center gap-2 hover:opacity-90"
+                        className="flex-1 sm:flex-none justify-center bg-secondary text-secondary-foreground px-4 py-2 rounded-md flex items-center gap-2 hover:opacity-90"
                     >
                         <Tag className="h-4 w-4" />
                         Categorías
@@ -136,7 +136,7 @@ export default function ServicesPage() {
                             setSelectedService(null);
                             setIsDialogOpen(true);
                         }}
-                        className="bg-primary text-primary-foreground px-4 py-2 rounded-md flex items-center gap-2 hover:opacity-90"
+                        className="flex-1 sm:flex-none justify-center bg-primary text-primary-foreground px-4 py-2 rounded-md flex items-center gap-2 hover:opacity-90"
                     >
                         <Plus className="h-4 w-4" />
                         Nuevo Servicio
@@ -199,63 +199,65 @@ export default function ServicesPage() {
             </div>
 
             <div className="bg-card rounded-lg border shadow-sm overflow-hidden">
-                <table className="w-full text-sm text-left">
-                    <thead className="bg-muted/50 border-b">
-                        <tr>
-                            <th className="p-4 font-medium">Servicio</th>
-                            <th className="p-4 font-medium">Categoría</th>
-                            <th className="p-4 font-medium">Duración</th>
-                            <th className="p-4 font-medium text-right">Precio</th>
-                            <th className="p-4 font-medium">Estado</th>
-                            <th className="p-4 font-medium text-right">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {loading && (
-                            <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Cargando...</td></tr>
-                        )}
-                        {!loading && filteredServices.length === 0 && (
-                            <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No hay servicios registrados.</td></tr>
-                        )}
-                        {filteredServices.map((service) => (
-                            <tr key={service.id} className="border-b hover:bg-muted/50 transition">
-                                <td className="p-4">
-                                    <div className="font-medium">{service.name}</div>
-                                    {service.description && (
-                                        <div className="text-xs text-muted-foreground">{service.description}</div>
-                                    )}
-                                </td>
-                                <td className="p-4 text-muted-foreground">
-                                    {service.category?.name || 'Sin categoría'}
-                                </td>
-                                <td className="p-4">{service.durationMin} min</td>
-                                <td className="p-4 text-right font-mono">S/.{Number(service.price).toFixed(2)}</td>
-                                <td className="p-4">
-                                    <span className={`px-2 py-1 rounded text-xs ${service.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
-                                        }`}>
-                                        {service.isActive ? 'Activo' : 'Inactivo'}
-                                    </span>
-                                </td>
-                                <td className="p-4 text-right">
-                                    <div className="flex justify-end gap-2">
-                                        <button
-                                            onClick={() => handleEdit(service)}
-                                            className="p-2 hover:bg-accent rounded"
-                                        >
-                                            <Edit className="h-4 w-4" />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(service.id)}
-                                            className="p-2 hover:bg-accent rounded text-red-600"
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </button>
-                                    </div>
-                                </td>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left min-w-[600px]">
+                        <thead className="bg-muted/50 border-b">
+                            <tr>
+                                <th className="p-4 font-medium">Servicio</th>
+                                <th className="p-4 font-medium">Categoría</th>
+                                <th className="p-4 font-medium">Duración</th>
+                                <th className="p-4 font-medium text-right">Precio</th>
+                                <th className="p-4 font-medium">Estado</th>
+                                <th className="p-4 font-medium text-right">Acciones</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {loading && (
+                                <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Cargando...</td></tr>
+                            )}
+                            {!loading && filteredServices.length === 0 && (
+                                <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No hay servicios registrados.</td></tr>
+                            )}
+                            {filteredServices.map((service) => (
+                                <tr key={service.id} className="border-b hover:bg-muted/50 transition">
+                                    <td className="p-4">
+                                        <div className="font-medium">{service.name}</div>
+                                        {service.description && (
+                                            <div className="text-xs text-muted-foreground">{service.description}</div>
+                                        )}
+                                    </td>
+                                    <td className="p-4 text-muted-foreground">
+                                        {service.category?.name || 'Sin categoría'}
+                                    </td>
+                                    <td className="p-4">{service.durationMin} min</td>
+                                    <td className="p-4 text-right font-mono">S/.{Number(service.price).toFixed(2)}</td>
+                                    <td className="p-4">
+                                        <span className={`px-2 py-1 rounded text-xs ${service.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                                            }`}>
+                                            {service.isActive ? 'Activo' : 'Inactivo'}
+                                        </span>
+                                    </td>
+                                    <td className="p-4 text-right">
+                                        <div className="flex justify-end gap-2">
+                                            <button
+                                                onClick={() => handleEdit(service)}
+                                                className="p-2 hover:bg-accent rounded"
+                                            >
+                                                <Edit className="h-4 w-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(service.id)}
+                                                className="p-2 hover:bg-accent rounded text-red-600"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <ServiceDialog

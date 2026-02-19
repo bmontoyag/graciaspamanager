@@ -314,35 +314,36 @@ export default function AnnualReportPage() {
                     <div className="bg-card border rounded-lg p-6 shadow-sm">
                         <h2 className="text-xl font-bold mb-4">Detalle Mensual</h2>
                         <div className="overflow-hidden rounded-lg border">
-                            <table className="w-full text-sm">
-                                <thead className="bg-muted/50 border-b">
-                                    <tr>
-                                        <th className="p-4 text-left font-medium">Mes</th>
-                                        <th className="p-4 text-right font-medium">Ingresos</th>
-                                        <th className="p-4 text-right font-medium">Gastos</th>
-                                        <th className="p-4 text-right font-medium">Ganancia</th>
-                                        <th className="p-4 text-right font-medium">Margen</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {monthlyData.map((data, index) => {
-                                        const margin = data.ingresos > 0 ? ((data.ganancia / data.ingresos) * 100).toFixed(1) : '0.0';
-                                        return (
-                                            <tr key={index} className="border-b hover:bg-muted/50 transition">
-                                                <td className="p-4 font-medium capitalize">{data.month}</td>
-                                                <td className="p-4 text-right font-mono text-green-600">S/ {data.ingresos.toFixed(2)}</td>
-                                                <td className="p-4 text-right font-mono text-red-600">S/ {data.gastos.toFixed(2)}</td>
-                                                <td className="p-4 text-right font-mono font-bold">S/ {data.ganancia.toFixed(2)}</td>
-                                                <td className="p-4 text-right font-mono text-muted-foreground">{margin}%</td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm min-w-[600px]">
+                                    <thead className="bg-muted/50 border-b">
+                                        <tr>
+                                            <th className="p-4 text-left font-medium">Mes</th>
+                                            <th className="p-4 text-right font-medium">Ingresos</th>
+                                            <th className="p-4 text-right font-medium">Gastos</th>
+                                            <th className="p-4 text-right font-medium">Ganancia</th>
+                                            <th className="p-4 text-right font-medium">Margen</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {monthlyData.map((data, index) => {
+                                            const margin = data.ingresos > 0 ? ((data.ganancia / data.ingresos) * 100).toFixed(1) : '0.0';
+                                            return (
+                                                <tr key={index} className="border-b hover:bg-muted/50 transition">
+                                                    <td className="p-4 font-medium capitalize">{data.month}</td>
+                                                    <td className="p-4 text-right font-mono text-green-600">S/ {data.ingresos.toFixed(2)}</td>
+                                                    <td className="p-4 text-right font-mono text-red-600">S/ {data.gastos.toFixed(2)}</td>
+                                                    <td className="p-4 text-right font-mono font-bold">S/ {data.ganancia.toFixed(2)}</td>
+                                                    <td className="p-4 text-right font-mono text-muted-foreground">{margin}%</td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
-                    </div>
-                </>
+                    </>
             )}
-        </PageContainer>
-    );
+                </PageContainer>
+            );
 }

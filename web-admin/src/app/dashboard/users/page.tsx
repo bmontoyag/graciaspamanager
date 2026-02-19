@@ -59,14 +59,14 @@ export default function UsersPage() {
 
     return (
         <PageContainer>
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                 <h1 className="text-3xl font-serif font-bold">Usuarios (Personal)</h1>
                 <button
                     onClick={() => {
                         setSelectedUser(null);
                         setIsDialogOpen(true);
                     }}
-                    className="bg-primary text-primary-foreground px-4 py-2 rounded-md flex items-center gap-2 hover:opacity-90"
+                    className="w-full sm:w-auto justify-center bg-primary text-primary-foreground px-4 py-2 rounded-md flex items-center gap-2 hover:opacity-90"
                 >
                     <Plus className="h-4 w-4" />
                     Nuevo Usuario
@@ -87,57 +87,59 @@ export default function UsersPage() {
             </div>
 
             <div className="bg-card rounded-lg border shadow-sm overflow-hidden">
-                <table className="w-full text-sm text-left">
-                    <thead className="bg-muted/50 border-b">
-                        <tr>
-                            <th className="p-4 font-medium">Nombre</th>
-                            <th className="p-4 font-medium">Email</th>
-                            <th className="p-4 font-medium">Rol</th>
-                            <th className="p-4 font-medium text-right">Comisión</th>
-                            <th className="p-4 font-medium text-right">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {loading && (
-                            <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">Cargando...</td></tr>
-                        )}
-                        {!loading && filteredUsers.length === 0 && (
-                            <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">No se encontraron usuarios.</td></tr>
-                        )}
-                        {filteredUsers.map((user) => (
-                            <tr key={user.id} className="border-b hover:bg-muted/50 transition">
-                                <td className="p-4 font-medium">{user.name}</td>
-                                <td className="p-4 text-muted-foreground">{user.email}</td>
-                                <td className="p-4">
-                                    <div className="flex flex-wrap gap-1">
-                                        {user.roles?.map((ur: any) => (
-                                            <span key={ur.roleId} className="px-2 py-1 rounded text-xs bg-blue-100 text-blue-700">
-                                                {ur.role.name}
-                                            </span>
-                                        ))}
-                                    </div>
-                                </td>
-                                <td className="p-4 text-right font-mono">{Number(user.commissionPercentage)}%</td>
-                                <td className="p-4 text-right">
-                                    <div className="flex justify-end gap-2">
-                                        <button
-                                            onClick={() => handleEdit(user)}
-                                            className="p-2 hover:bg-accent rounded"
-                                        >
-                                            <Edit className="h-4 w-4" />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(user.id)}
-                                            className="p-2 hover:bg-accent rounded text-red-600"
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </button>
-                                    </div>
-                                </td>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left min-w-[600px]">
+                        <thead className="bg-muted/50 border-b">
+                            <tr>
+                                <th className="p-4 font-medium">Nombre</th>
+                                <th className="p-4 font-medium">Email</th>
+                                <th className="p-4 font-medium">Rol</th>
+                                <th className="p-4 font-medium text-right">Comisión</th>
+                                <th className="p-4 font-medium text-right">Acciones</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {loading && (
+                                <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">Cargando...</td></tr>
+                            )}
+                            {!loading && filteredUsers.length === 0 && (
+                                <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">No se encontraron usuarios.</td></tr>
+                            )}
+                            {filteredUsers.map((user) => (
+                                <tr key={user.id} className="border-b hover:bg-muted/50 transition">
+                                    <td className="p-4 font-medium">{user.name}</td>
+                                    <td className="p-4 text-muted-foreground">{user.email}</td>
+                                    <td className="p-4">
+                                        <div className="flex flex-wrap gap-1">
+                                            {user.roles?.map((ur: any) => (
+                                                <span key={ur.roleId} className="px-2 py-1 rounded text-xs bg-blue-100 text-blue-700">
+                                                    {ur.role.name}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </td>
+                                    <td className="p-4 text-right font-mono">{Number(user.commissionPercentage)}%</td>
+                                    <td className="p-4 text-right">
+                                        <div className="flex justify-end gap-2">
+                                            <button
+                                                onClick={() => handleEdit(user)}
+                                                className="p-2 hover:bg-accent rounded"
+                                            >
+                                                <Edit className="h-4 w-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(user.id)}
+                                                className="p-2 hover:bg-accent rounded text-red-600"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <UserDialog

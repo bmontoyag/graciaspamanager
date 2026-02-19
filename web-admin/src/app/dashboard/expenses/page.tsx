@@ -59,14 +59,14 @@ export default function ExpensesPage() {
 
     return (
         <PageContainer>
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                 <h1 className="text-3xl font-serif font-bold">Gastos</h1>
                 <button
                     onClick={() => {
                         setSelectedExpense(null);
                         setIsDialogOpen(true);
                     }}
-                    className="bg-primary text-primary-foreground px-4 py-2 rounded-md flex items-center gap-2 hover:opacity-90"
+                    className="w-full sm:w-auto justify-center bg-primary text-primary-foreground px-4 py-2 rounded-md flex items-center gap-2 hover:opacity-90"
                 >
                     <Plus className="h-4 w-4" />
                     Nuevo Gasto
@@ -87,53 +87,55 @@ export default function ExpensesPage() {
             </div>
 
             <div className="bg-card rounded-lg border shadow-sm overflow-hidden">
-                <table className="w-full text-sm text-left">
-                    <thead className="bg-muted/50 border-b">
-                        <tr>
-                            <th className="p-4 font-medium">Fecha</th>
-                            <th className="p-4 font-medium">Descripción</th>
-                            <th className="p-4 font-medium">Categoría</th>
-                            <th className="p-4 font-medium text-right">Monto</th>
-                            <th className="p-4 font-medium text-right">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {loading && (
-                            <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">Cargando...</td></tr>
-                        )}
-                        {!loading && filteredExpenses.length === 0 && (
-                            <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">No se encontraron gastos.</td></tr>
-                        )}
-                        {filteredExpenses.map((expense) => (
-                            <tr key={expense.id} className="border-b hover:bg-muted/50 transition">
-                                <td className="p-4">{new Date(expense.date).toLocaleDateString()}</td>
-                                <td className="p-4 font-medium">{expense.description}</td>
-                                <td className="p-4">
-                                    <span className="bg-secondary text-secondary-foreground px-2 py-1 rounded text-xs">
-                                        {expense.category}
-                                    </span>
-                                </td>
-                                <td className="p-4 text-right font-mono text-red-500">- S/.{Number(expense.amount).toFixed(2)}</td>
-                                <td className="p-4 text-right">
-                                    <div className="flex justify-end gap-2">
-                                        <button
-                                            onClick={() => handleEdit(expense)}
-                                            className="p-2 hover:bg-accent rounded"
-                                        >
-                                            <Edit className="h-4 w-4" />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(expense.id)}
-                                            className="p-2 hover:bg-accent rounded text-red-600"
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </button>
-                                    </div>
-                                </td>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left min-w-[600px]">
+                        <thead className="bg-muted/50 border-b">
+                            <tr>
+                                <th className="p-4 font-medium">Fecha</th>
+                                <th className="p-4 font-medium">Descripción</th>
+                                <th className="p-4 font-medium">Categoría</th>
+                                <th className="p-4 font-medium text-right">Monto</th>
+                                <th className="p-4 font-medium text-right">Acciones</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {loading && (
+                                <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">Cargando...</td></tr>
+                            )}
+                            {!loading && filteredExpenses.length === 0 && (
+                                <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">No se encontraron gastos.</td></tr>
+                            )}
+                            {filteredExpenses.map((expense) => (
+                                <tr key={expense.id} className="border-b hover:bg-muted/50 transition">
+                                    <td className="p-4">{new Date(expense.date).toLocaleDateString()}</td>
+                                    <td className="p-4 font-medium">{expense.description}</td>
+                                    <td className="p-4">
+                                        <span className="bg-secondary text-secondary-foreground px-2 py-1 rounded text-xs">
+                                            {expense.category}
+                                        </span>
+                                    </td>
+                                    <td className="p-4 text-right font-mono text-red-500">- S/.{Number(expense.amount).toFixed(2)}</td>
+                                    <td className="p-4 text-right">
+                                        <div className="flex justify-end gap-2">
+                                            <button
+                                                onClick={() => handleEdit(expense)}
+                                                className="p-2 hover:bg-accent rounded"
+                                            >
+                                                <Edit className="h-4 w-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(expense.id)}
+                                                className="p-2 hover:bg-accent rounded text-red-600"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <ExpenseDialog

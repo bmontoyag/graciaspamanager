@@ -53,14 +53,14 @@ export default function ClientsPage() {
 
     return (
         <PageContainer>
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                 <h1 className="text-3xl font-serif font-bold">Gestión de Clientes</h1>
                 <button
                     onClick={() => {
                         setSelectedClient(undefined);
                         setIsDialogOpen(true);
                     }}
-                    className="bg-primary text-primary-foreground px-4 py-2 rounded-md flex items-center gap-2 hover:opacity-90 transition"
+                    className="w-full sm:w-auto justify-center bg-primary text-primary-foreground px-4 py-2 rounded-md flex items-center gap-2 hover:opacity-90 transition"
                 >
                     <Plus className="h-4 w-4" />
                     Nuevo Cliente
@@ -82,7 +82,7 @@ export default function ClientsPage() {
                     <p className="p-6 text-center">Cargando clientes...</p>
                 ) : (
                     <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left">
+                        <table className="w-full text-sm text-left min-w-[600px]">
                             <thead className="bg-muted/50 border-b">
                                 <tr>
                                     <th className="px-4 py-3">Nombre</th>
