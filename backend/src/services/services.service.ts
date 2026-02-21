@@ -17,6 +17,7 @@ export class ServicesService {
     return this.prisma.service.findMany({
       where: { isActive: true },
       orderBy: { name: 'asc' },
+      include: { category: true },
     });
   }
 
