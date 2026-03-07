@@ -21,13 +21,18 @@ export class AppointmentsService {
 
         await this.validateAppointment(appointmentDate, appointmentEndDate);
 
-        return this.prisma.appointment.create({
+        const appointment = await this.prisma.appointment.create({
             data: {
                 ...rest,
                 date: appointmentDate,
                 duration: appointmentDuration
             },
         });
+
+        // Crear tareas de notificacion automatica (15min antes y 15min despues)
+        await this.scheduleAppointmentNotifications(appointment.id, appointmentDate, appointmentDuration, createAppointmentDto.workerId);
+
+        return appointment;
     }
 
     findAll() {
@@ -80,7 +85,7 @@ export class AppointmentsService {
             await this.validateAppointment(appointmentDate, appointmentEndDate, id);
         }
 
-        return this.prisma.appointment.update({
+        const appointment = await this.prisma.appointment.update({
             where: { id },
             data: {
                 ...rest,
@@ -88,6 +93,13 @@ export class AppointmentsService {
                 ...(duration && { duration: appointmentDuration }),
             },
         });
+
+        // Re-agendar notificaciones si la fecha o duración cambió
+        if (date || duration) {
+            await this.scheduleAppointmentNotifications(appointment.id, appointmentDate, appointmentDuration, appointment.workerId);
+        }
+
+        return appointment;
     }
 
     async remove(id: number) {
@@ -215,5 +227,36 @@ export class AppointmentsService {
                 throw new ConflictException(`Conflicto con horario bloqueado: ${slot.startTime} - ${slot.endTime} (${slot.reason || 'Bloqueado'})`);
             }
         }
+    }
+
+    private async scheduleAppointmentNotifications(appointmentId: number, startDate: Date, durationMinutes: number, workerId: number) {
+        // Borrar cualquier notificacion pendiente anterior para esta cita
+        await this.prisma.notificationTask.deleteMany({
+            where: { relatedAppointmentId: appointmentId }
+        });
+
+        const preAppointmentTime = new Date(startDate.getTime() - 15 * 60000); // 15 mins a. m.
+        const postAppointmentTime = new Date(startDate.getTime() + durationMinutes * 60000 + 15 * 60000); // 15 mins d. m.
+
+        await this.prisma.notificationTask.createMany({
+            data: [
+                {
+                    type: 'UPCOMING_APPOINTMENT',
+                    executeAt: preAppointmentTime,
+                    title: 'Cita en 15 minutos',
+                    body: 'Tienes una cita próxima a comenzar',
+                    targetUserId: workerId,
+                    relatedAppointmentId: appointmentId,
+                },
+                {
+                    type: 'PENDING_ATTENTION_RECORD',
+                    executeAt: postAppointmentTime,
+                    title: 'Registro de Atención Pendiente',
+                    body: 'No olvides registrar el cobro y atención de tu última cita',
+                    targetUserId: workerId,
+                    relatedAppointmentId: appointmentId,
+                }
+            ]
+        });
     }
 }

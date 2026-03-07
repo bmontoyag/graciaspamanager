@@ -46,6 +46,16 @@ model Configuration {
   backupTime       String   @default("02:00") // HH:mm
   backupEmail      String?
 
+  // Push Notification Configuration
+  notificationsEnabled       Boolean @default(true)
+  notifyNewAppointment       Boolean @default(true)
+  notifyAppointmentReminder  Boolean @default(true)
+  notifyDailySummary         Boolean @default(false)
+  notifyPaymentReceived      Boolean @default(false)
+  notifyCancellation         Boolean @default(true)
+  reminderMinutesBefore      Int     @default(60)   // Minutes before appointment
+  dailySummaryTime           String  @default("08:00") // HH:mm
+
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 }
@@ -70,13 +80,16 @@ model User {
   roles          UserRole[]
   fingerprintKey String?  // Stores a public key or identifier for biometric auth
   isActive       Boolean  @default(true)
+  pushToken      String?  // Expo Push Token for notifications
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  appointmentsWorker Appointment[] @relation("WorkerAppointments")
+  appointmentsWorker Appointment[]     @relation("WorkerAppointments")
   attentions         AttentionWorker[] // Relation to AttentionWorker
-  expenses           Expense[]     @relation("WorkerExpenses")
-  commissionPercentage Decimal     @default(50.0) @db.Decimal(5, 2)
+  expenses           Expense[]         @relation("WorkerExpenses")
+  auditLogs          AuditLog[]        @relation("UserAuditLogs")
+  notificationTasks  NotificationTask[] @relation("UserNotificationTasks")
+  commissionPercentage Decimal         @default(50.0) @db.Decimal(5, 2)
 }
 
 model Role { // RBAC Role
@@ -272,3 +285,54 @@ enum PaymentType {
   FULL
   RELICIDATION
 }
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  entity    String   // e.g., "Client", "Appointment"
+  entityId  Int?     // The ID of the affected record
+  action    String   // "CREATE", "UPDATE", "DELETE"
+  oldData   Json?    // State before the change
+  newData   Json?    // State after the change
+  
+  userId    Int?     // User who made the change
+  user      User?    @relation("UserAuditLogs", fields: [userId], references: [id])
+  
+  createdAt DateTime @default(now())
+}
+
+enum NotificationTaskType {
+  BIRTHDAY_REMINDER
+  UPCOMING_APPOINTMENT
+  PENDING_ATTENTION_RECORD
+}
+
+enum NotificationTaskStatus {
+  PENDING
+  SENT
+  FAILED
+  CANCELLED
+}
+
+model NotificationTask {
+  id             Int                    @id @default(autoincrement())
+  type           NotificationTaskType
+  executeAt      DateTime               // Exact time when this should be processed
+  status         NotificationTaskStatus @default(PENDING)
+  title          String                 // Pre-computed title
+  body           String                 // Pre-computed body
+  data           Json?                  // Any extra payload for the push notification
+  
+  // Who should receive this notification? (Typically the admin or worker)
+  targetUserId   Int
+  targetUser     User                   @relation("UserNotificationTasks", fields: [targetUserId], references: [id])
+  
+  // Optional relations to the entities this task refers to
+  relatedClientId     Int?
+  relatedAppointmentId Int?
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  @@index([executeAt, status]) // Critical index for fast polling
+}
+

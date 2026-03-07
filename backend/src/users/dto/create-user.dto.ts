@@ -24,4 +24,8 @@ export class CreateUserDto {
     @IsOptional()
     @IsNumber({}, { each: true })
     roleIds?: number[];
+
+    @IsString()
+    @IsOptional()
+    pushToken?: string;
 }

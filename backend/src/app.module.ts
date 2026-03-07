@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
@@ -18,6 +19,8 @@ import { BlockedSlotsModule } from './blocked-slots/blocked-slots.module';
 import { RolesModule } from './roles/roles.module';
 import { ModulesModule } from './modules/modules.module';
 import { BackupModule } from './backup/backup.module';
+import { AuditInterceptor } from './common/interceptors/audit.interceptor';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -37,8 +40,15 @@ import { BackupModule } from './backup/backup.module';
     RolesModule,
     ModulesModule,
     BackupModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditInterceptor,
+    },
+  ],
 })
 export class AppModule { }
