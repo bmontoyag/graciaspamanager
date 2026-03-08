@@ -32,12 +32,16 @@ echo "🔄 Restarting Frontend PM2 Service..."
 pm2 restart frontend || pm2 start npm --name "frontend" -- start
 cd ..
 
-# 4. Database Migrations (Optional - Safe)
-# Only pushes schema changes, does not delete data unless specifically destructive
+# 4. Database Migrations (Safe Production Mode)
+# "migrate deploy" aplica migraciones pendientes creadas en dev sin borrar datos ni recrear la BD.
+# Evita "db push" en prod porque podría perder datos si hay conflictos de esquema.
 echo "🗄️  Applying Database Schema Changes (safe)..."
 cd backend
-npx prisma db push
+npx prisma generate
+npx prisma migrate deploy
 cd ..
 
+echo "🛡️  NOTA: Los archivos .env (.env.local, .env.production) locales NO son sobrescritos por git pull."
 echo "✅ Deployment Complete!"
+pm2 save
 pm2 status
