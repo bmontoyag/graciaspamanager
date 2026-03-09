@@ -34,6 +34,8 @@ npm install
 echo "🏗️  Building Frontend..."
 # Increase memory limit for build if needed
 export NODE_OPTIONS="--max-old-space-size=4096"
+echo "🧹 Cleaning previous build cache..."
+rm -rf .next
 npm run build
 echo "🔄 Restarting Frontend PM2 Service..."
 pm2 restart frontend || pm2 start npm --name "frontend" -- start
