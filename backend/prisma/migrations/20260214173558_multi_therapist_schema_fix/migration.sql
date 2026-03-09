@@ -5,7 +5,7 @@
 
 */
 -- DropForeignKey
-ALTER TABLE "Attention" DROP CONSTRAINT "Attention_workerId_fkey";
+-- ALTER TABLE "Attention" DROP CONSTRAINT "Attention_workerId_fkey";
 
 -- AlterTable
 ALTER TABLE "Attention" DROP COLUMN "workerId";
