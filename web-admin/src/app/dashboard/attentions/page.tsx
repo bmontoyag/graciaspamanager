@@ -12,6 +12,9 @@ export default function AttentionsPage() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [selectedAttention, setSelectedAttention] = useState<any>(null);
     const [filter, setFilter] = useState('');
+    const [dateFilter, setDateFilter] = useState('');
+    const [serviceFilter, setServiceFilter] = useState('all');
+    const [therapistFilter, setTherapistFilter] = useState('all');
 
     const fetchAttentions = () => {
         setLoading(true);
@@ -55,10 +58,29 @@ export default function AttentionsPage() {
         }
     };
 
-    const filteredAttentions = attentions.filter(a =>
-        a.client?.name.toLowerCase().includes(filter.toLowerCase()) ||
-        a.service?.name.toLowerCase().includes(filter.toLowerCase())
-    );
+    // Extraer valores únicos de las atenciones para los filtros
+    const uniqueTherapists = Array.from(new Set(
+        attentions.flatMap(a => a.workers?.map((w: any) => JSON.stringify({ id: w.workerId, name: w.worker?.name })) || [])
+    )).map((str: any) => JSON.parse(str));
+
+    const uniqueServices = Array.from(new Set(
+        attentions.map(a => JSON.stringify({ id: a.service?.id, name: a.service?.name }))
+    )).filter(str => str !== 'undefined').map((str: any) => JSON.parse(str));
+
+    const filteredAttentions = attentions.filter(a => {
+        const matchesText = a.client?.name.toLowerCase().includes(filter.toLowerCase()) ||
+            a.service?.name.toLowerCase().includes(filter.toLowerCase());
+
+        const matchesTherapist = therapistFilter === 'all' ||
+            a.workers?.some((w: any) => w.workerId.toString() === therapistFilter);
+
+        const matchesService = serviceFilter === 'all' ||
+            a.service?.id?.toString() === serviceFilter;
+
+        const matchesDate = !dateFilter || (a.date && a.date.startsWith(dateFilter));
+
+        return matchesText && matchesTherapist && matchesService && matchesDate;
+    });
 
     return (
         <PageContainer>
@@ -77,15 +99,57 @@ export default function AttentionsPage() {
             </div>
 
             <div className="bg-card rounded-lg border shadow-sm p-4 mb-6">
-                <div className="flex items-center gap-2">
-                    <Search className="text-muted-foreground h-4 w-4" />
-                    <input
-                        type="text"
-                        placeholder="Buscar por cliente o servicio..."
-                        className="bg-transparent outline-none w-full"
-                        value={filter}
-                        onChange={(e) => setFilter(e.target.value)}
-                    />
+                <div className="flex flex-col md:flex-row gap-4">
+                    <div className="flex items-center gap-2 flex-1 relative">
+                        <Search className="text-muted-foreground h-4 w-4 absolute left-3" />
+                        <input
+                            type="text"
+                            placeholder="Buscar por cliente o servicio..."
+                            className="bg-background border rounded-md pl-9 pr-3 py-2 w-full outline-none focus:ring-1 focus:ring-primary/50 text-sm"
+                            value={filter}
+                            onChange={(e) => setFilter(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-4">
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground whitespace-nowrap">Fecha:</span>
+                            <input
+                                type="date"
+                                value={dateFilter}
+                                onChange={(e) => setDateFilter(e.target.value)}
+                                className="bg-background border rounded-md px-2 py-1.5 text-sm outline-none w-full sm:w-[140px]"
+                            />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground whitespace-nowrap">Servicio:</span>
+                            <select
+                                value={serviceFilter}
+                                onChange={(e) => setServiceFilter(e.target.value)}
+                                className="bg-background border rounded-md px-2 py-1.5 text-sm outline-none w-full sm:w-[130px]"
+                            >
+                                <option value="all">Todos</option>
+                                {uniqueServices.map((s: any) => s.id && (
+                                    <option key={s.id} value={s.id.toString()}>{s.name}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground whitespace-nowrap">Terapeuta:</span>
+                            <select
+                                value={therapistFilter}
+                                onChange={(e) => setTherapistFilter(e.target.value)}
+                                className="bg-background border rounded-md px-2 py-1.5 text-sm outline-none w-full sm:w-[130px]"
+                            >
+                                <option value="all">Todos</option>
+                                {uniqueTherapists.map((t: any) => (
+                                    <option key={t.id} value={t.id.toString()}>{t.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
                 </div>
             </div>
 

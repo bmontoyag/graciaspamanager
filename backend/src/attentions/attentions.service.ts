@@ -49,6 +49,14 @@ export class AttentionsService {
         }
       });
 
+      // Automáticamente marcar la cita como completada si viene vinculada
+      if (rest.appointmentId) {
+        await tx.appointment.update({
+          where: { id: rest.appointmentId },
+          data: { status: 'COMPLETED' }
+        });
+      }
+
       return attention;
     });
   }

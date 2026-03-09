@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { LayoutDashboard, Users, Calendar, Settings, LogOut, Menu, X, FileText, Package, DollarSign, ClipboardList, BarChart3, Clock, Database, ChevronDown, ChevronRight, UserCircle, Key, UserPlus, Gift, Home, Palette, User } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, Settings, LogOut, Menu, X, FileText, Package, DollarSign, ClipboardList, BarChart3, Clock, Database, ChevronDown, ChevronRight, UserCircle, Key, UserPlus, Gift, Home, Palette, User, History } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { AutoLogout } from '@/components/layout/AutoLogout';
 
 export default function DashboardLayout({
     children,
@@ -286,6 +287,12 @@ export default function DashboardLayout({
                                         Backup
                                     </Link>
                                 </li>
+                                <li>
+                                    <Link href="/dashboard/audit" onClick={closeSidebar} className="flex items-center rounded-md p-2 hover:bg-white/10 transition-colors text-blue-300 hover:text-blue-200">
+                                        <div className="mr-3"><History className="h-5 w-5" /></div>
+                                        Auditoría Web
+                                    </Link>
+                                </li>
                             </>
                         )}
 
@@ -320,7 +327,9 @@ export default function DashboardLayout({
             {/* Main Content */}
             <main className="flex-1 overflow-auto md:ml-0">
                 <div className="md:hidden h-16" /> {/* Spacer for mobile menu button */}
-                {children}
+                <AutoLogout timeoutMinutes={15}>
+                    {children}
+                </AutoLogout>
             </main>
         </div>
     );

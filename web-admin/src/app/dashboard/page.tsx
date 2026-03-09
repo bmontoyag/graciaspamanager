@@ -12,6 +12,8 @@ export default function DashboardPage() {
         appointmentsToday: 0,
         totalClients: 0,
         salesMonth: 0,
+        expensesToday: 0,
+        expensesMonth: 0,
     });
     const [appointments, setAppointments] = useState<any[]>([]);
     const [upcomingBirthdays, setUpcomingBirthdays] = useState<any[]>([]);
@@ -134,22 +136,39 @@ export default function DashboardPage() {
             <h1 className="text-3xl font-serif font-bold mb-8">Dashboard</h1>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div className="bg-card border rounded-lg p-6">
-                    <p className="text-sm text-muted-foreground mb-2">Ventas Hoy</p>
-                    <p className="text-3xl font-bold">S/. {stats.salesToday.toLocaleString()}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                {/* Hoy */}
+                <div className="bg-card border rounded-lg p-6 shadow-sm">
+                    <p className="text-sm text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Ingresos Hoy</p>
+                    <p className="text-3xl font-bold text-green-600">S/. {stats.salesToday.toLocaleString()}</p>
                 </div>
-                <div className="bg-card border rounded-lg p-6">
-                    <p className="text-sm text-muted-foreground mb-2">Citas Hoy</p>
+                <div className="bg-card border rounded-lg p-6 shadow-sm">
+                    <p className="text-sm text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Gastos Hoy</p>
+                    <p className="text-3xl font-bold text-red-600">S/. {stats.expensesToday.toLocaleString()}</p>
+                </div>
+                <div className="bg-card border rounded-lg p-6 shadow-sm">
+                    <p className="text-sm text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Citas Hoy</p>
                     <p className="text-3xl font-bold">{stats.appointmentsToday}</p>
                 </div>
-                <div className="bg-card border rounded-lg p-6">
-                    <p className="text-sm text-muted-foreground mb-2">Total Clientes</p>
+                <div className="bg-card border rounded-lg p-6 shadow-sm">
+                    <p className="text-sm text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Total Clientes</p>
                     <p className="text-3xl font-bold">{stats.totalClients}</p>
                 </div>
-                <div className="bg-card border rounded-lg p-6">
-                    <p className="text-sm text-muted-foreground mb-2">Ventas del Mes</p>
-                    <p className="text-3xl font-bold">S/. {stats.salesMonth.toLocaleString()}</p>
+
+                {/* Mes */}
+                <div className="bg-card border rounded-lg p-6 shadow-sm">
+                    <p className="text-sm text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Ingresos Mes</p>
+                    <p className="text-3xl font-bold text-green-700">S/. {stats.salesMonth.toLocaleString()}</p>
+                </div>
+                <div className="bg-card border rounded-lg p-6 shadow-sm">
+                    <p className="text-sm text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Gastos Mes</p>
+                    <p className="text-3xl font-bold text-red-700">S/. {stats.expensesMonth.toLocaleString()}</p>
+                </div>
+                <div className="bg-card border rounded-lg p-6 shadow-sm sm:col-span-2 lg:col-span-2 flex flex-col justify-center">
+                    <p className="text-sm text-primary mb-1 uppercase tracking-wider font-bold">Utilidad Neta Mensual</p>
+                    <p className={`text-4xl font-black ${stats.salesMonth - stats.expensesMonth >= 0 ? 'text-primary' : 'text-red-600'}`}>
+                        S/. {(stats.salesMonth - stats.expensesMonth).toLocaleString()}
+                    </p>
                 </div>
             </div>
 

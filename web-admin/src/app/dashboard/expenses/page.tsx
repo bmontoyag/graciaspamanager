@@ -12,6 +12,9 @@ export default function ExpensesPage() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [selectedExpense, setSelectedExpense] = useState<any>(null);
     const [filter, setFilter] = useState('');
+    const [dateFilter, setDateFilter] = useState('');
+    const [categoryFilter, setCategoryFilter] = useState('all');
+    const [workerFilter, setWorkerFilter] = useState('all');
 
     const fetchExpenses = () => {
         setLoading(true);
@@ -52,17 +55,33 @@ export default function ExpensesPage() {
         }
     };
 
-    const filteredExpenses = expenses.filter(e =>
-        e.description?.toLowerCase().includes(filter.toLowerCase()) ||
-        e.category?.toLowerCase().includes(filter.toLowerCase())
-    );
-
     const formatSafeDate = (dateString: string) => {
         if (!dateString) return '';
         const d = new Date(dateString);
         d.setMinutes(d.getMinutes() + d.getTimezoneOffset());
         return d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
     };
+
+    // Extraer valores únicos para los selects
+    const uniqueCategories = Array.from(new Set(expenses.map(e => e.category))).filter(Boolean);
+    const uniqueWorkers = Array.from(new Set(
+        expenses.filter(e => e.worker).map(e => JSON.stringify({ id: e.workerId, name: e.worker.name }))
+    )).map((str: any) => JSON.parse(str));
+
+    const filteredExpenses = expenses.filter(e => {
+        const matchesText = e.description?.toLowerCase().includes(filter.toLowerCase()) ||
+            e.category?.toLowerCase().includes(filter.toLowerCase());
+
+        const matchesCategory = categoryFilter === 'all' || e.category === categoryFilter;
+
+        const matchesWorker = workerFilter === 'all' ||
+            (workerFilter === 'negocio' && !e.workerId) ||
+            (e.workerId?.toString() === workerFilter);
+
+        const matchesDate = !dateFilter || (e.date && e.date.startsWith(dateFilter));
+
+        return matchesText && matchesCategory && matchesWorker && matchesDate;
+    });
 
     return (
         <PageContainer>
@@ -81,15 +100,58 @@ export default function ExpensesPage() {
             </div>
 
             <div className="bg-card rounded-lg border shadow-sm p-4 mb-6">
-                <div className="flex items-center gap-2">
-                    <Search className="text-muted-foreground h-4 w-4" />
-                    <input
-                        type="text"
-                        placeholder="Buscar por descripción o categoría..."
-                        className="bg-transparent outline-none w-full"
-                        value={filter}
-                        onChange={(e) => setFilter(e.target.value)}
-                    />
+                <div className="flex flex-col md:flex-row gap-4">
+                    <div className="flex items-center gap-2 flex-1 relative">
+                        <Search className="text-muted-foreground h-4 w-4 absolute left-3" />
+                        <input
+                            type="text"
+                            placeholder="Buscar por descripción..."
+                            className="bg-background border rounded-md pl-9 pr-3 py-2 w-full outline-none focus:ring-1 focus:ring-primary/50 text-sm"
+                            value={filter}
+                            onChange={(e) => setFilter(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-4">
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground whitespace-nowrap">Fecha:</span>
+                            <input
+                                type="date"
+                                value={dateFilter}
+                                onChange={(e) => setDateFilter(e.target.value)}
+                                className="bg-background border rounded-md px-2 py-1.5 text-sm outline-none w-full sm:w-[140px]"
+                            />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground whitespace-nowrap">Categoría:</span>
+                            <select
+                                value={categoryFilter}
+                                onChange={(e) => setCategoryFilter(e.target.value)}
+                                className="bg-background border rounded-md px-2 py-1.5 text-sm outline-none w-full sm:w-[130px]"
+                            >
+                                <option value="all">Todas</option>
+                                {uniqueCategories.map((c: any) => (
+                                    <option key={c} value={c}>{c}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground whitespace-nowrap">Asignado:</span>
+                            <select
+                                value={workerFilter}
+                                onChange={(e) => setWorkerFilter(e.target.value)}
+                                className="bg-background border rounded-md px-2 py-1.5 text-sm outline-none w-full sm:w-[130px]"
+                            >
+                                <option value="all">Todos</option>
+                                <option value="negocio">Negocio (General)</option>
+                                {uniqueWorkers.map((w: any) => (
+                                    <option key={w.id} value={w.id.toString()}>{w.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
                 </div>
             </div>
 

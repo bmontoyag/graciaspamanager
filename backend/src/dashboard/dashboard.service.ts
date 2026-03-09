@@ -61,11 +61,35 @@ export class DashboardService {
             where: salesMonthWhere,
         });
 
+        // 5. Expenses Today
+        const expensesTodayWhere: any = { date: { gte: today } };
+        if (isWorker) {
+            expensesTodayWhere.workerId = workerId;
+        }
+
+        const expensesToday = await this.prisma.expense.aggregate({
+            _sum: { amount: true },
+            where: expensesTodayWhere,
+        });
+
+        // 6. Expenses this Month
+        const expensesMonthWhere: any = { date: { gte: startOfMonth } };
+        if (isWorker) {
+            expensesMonthWhere.workerId = workerId;
+        }
+
+        const expensesMonth = await this.prisma.expense.aggregate({
+            _sum: { amount: true },
+            where: expensesMonthWhere,
+        });
+
         return {
             salesToday: Number(salesToday._sum.totalCost || 0),
             appointmentsToday,
             totalClients,
             salesMonth: Number(salesMonth._sum.totalCost || 0),
+            expensesToday: Number(expensesToday._sum.amount || 0),
+            expensesMonth: Number(expensesMonth._sum.amount || 0),
         };
     }
 
