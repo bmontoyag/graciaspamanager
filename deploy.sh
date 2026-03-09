@@ -12,7 +12,7 @@ git pull origin main
 echo "🗄️  Applying Database Schema Changes (safe)..."
 cd backend
 npx prisma generate
-npx prisma migrate deploy
+npx prisma db push
 cd ..
 
 # 3. Backend Deployment
