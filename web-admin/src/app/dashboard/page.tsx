@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PageContainer } from '@/components/layout/PageContainer';
+import { Gift, Calendar, Users, DollarSign, Clock, CheckCircle, MessageCircle } from 'lucide-react';
 
 export default function DashboardPage() {
     const [role, setRole] = useState<string | null>(null);
@@ -13,6 +14,8 @@ export default function DashboardPage() {
         salesMonth: 0,
     });
     const [appointments, setAppointments] = useState<any[]>([]);
+    const [upcomingBirthdays, setUpcomingBirthdays] = useState<any[]>([]);
+    const [birthdayMessageTpl, setBirthdayMessageTpl] = useState<string>('¡Hola {name}! 🎉 De parte de todo el equipo de Gracia Spa queremos desearte un muy feliz cumpleaños. 🎂 Tenemos una promoción especial para ti por tu día, ¡escríbenos para agendarla! 💆‍♀️✨');
     const router = useRouter();
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -57,6 +60,16 @@ export default function DashboardPage() {
                 // Keep default stats on error to prevent crash
             });
 
+        // Fetch Configuration for Birthday Message
+        fetch(`${API_URL}/configuration`, { headers })
+            .then(res => res.json())
+            .then(config => {
+                if (config && config.birthdayMessage) {
+                    setBirthdayMessageTpl(config.birthdayMessage);
+                }
+            })
+            .catch(err => console.error('Error fetching config for birthday msg:', err));
+
         // Fetch Today's Appointments
         fetch(`${API_URL}/dashboard/appointments`, { headers })
             .then(res => {
@@ -65,6 +78,50 @@ export default function DashboardPage() {
             })
             .then(data => setAppointments(data))
             .catch(err => console.error('Error fetching appointments:', err));
+
+        // Fetch Clients for Birthdays
+        fetch(`${API_URL}/clients`, { headers })
+            .then(res => res.json())
+            .then(clients => {
+                if (Array.isArray(clients)) {
+                    const today = new Date();
+                    const nextWeek = new Date();
+                    nextWeek.setDate(today.getDate() + 7);
+
+                    const upcoming = clients.filter(c => {
+                        if (!c.birthday) return false;
+                        const bday = new Date(c.birthday);
+                        // Normalize to current year for comparison
+                        bday.setFullYear(today.getFullYear());
+
+                        // If birthday already passed this year, check next year
+                        if (bday < new Date(today.setHours(0, 0, 0, 0))) {
+                            bday.setFullYear(today.getFullYear() + 1);
+                        }
+
+                        // Check if birthday is within the next 7 days
+                        return bday >= new Date(new Date().setHours(0, 0, 0, 0)) && bday <= nextWeek;
+                    }).sort((a, b) => {
+                        const todaySet = new Date();
+
+                        const dateA = new Date(a.birthday as string);
+                        dateA.setFullYear(todaySet.getFullYear());
+                        if (dateA < new Date(todaySet.setHours(0, 0, 0, 0))) dateA.setFullYear(todaySet.getFullYear() + 1);
+
+                        // we must reset todaySet for B as setHours mutates the object
+                        const todaySetB = new Date();
+                        const dateB = new Date(b.birthday as string);
+                        dateB.setFullYear(todaySetB.getFullYear());
+                        if (dateB < new Date(todaySetB.setHours(0, 0, 0, 0))) dateB.setFullYear(todaySetB.getFullYear() + 1);
+
+                        return dateA.getTime() - dateB.getTime();
+                    });
+
+                    setUpcomingBirthdays(upcoming);
+                }
+            })
+            .catch(err => console.error('Error fetching clients for birthdays:', err));
+
     }, []);
 
     // We don't block anymore. If role is null, we just render.
@@ -152,6 +209,54 @@ export default function DashboardPage() {
                     </div>
                 )}
             </div>
+
+            {/* Upcoming Birthdays Section */}
+            {upcomingBirthdays.length > 0 && (
+                <div className="bg-card border border-pink-200 dark:border-pink-900/30 rounded-lg p-6 mb-8">
+                    <div className="flex items-center gap-2 mb-4">
+                        <Gift className="h-6 w-6 text-pink-500" />
+                        <h2 className="text-xl font-bold text-pink-600 dark:text-pink-400">Próximos Cumpleaños (7 días)</h2>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {upcomingBirthdays.map((client) => {
+                            const bday = new Date(client.birthday);
+                            const currentYear = new Date().getFullYear();
+                            bday.setFullYear(currentYear);
+                            if (bday < new Date(new Date().setHours(0, 0, 0, 0))) bday.setFullYear(currentYear + 1);
+
+                            const isToday = bday.toDateString() === new Date().toDateString();
+                            const formattedDate = bday.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
+
+                            const whatsappMsg = birthdayMessageTpl.replace('{name}', client.name);
+                            const whatsappUrl = `https://wa.me/${client.phone?.replace(/\D/g, '')}?text=${encodeURIComponent(whatsappMsg)}`;
+
+                            return (
+                                <div key={client.id} className={`p-4 rounded-lg flex flex-col justify-between border ${isToday ? 'bg-pink-50 border-pink-200 dark:bg-pink-900/20 dark:border-pink-800/50' : 'bg-background'}`}>
+                                    <div>
+                                        <p className="font-bold text-lg">{client.name}</p>
+                                        <p className="text-sm text-muted-foreground">{formattedDate} {isToday && <span className="text-pink-600 font-bold ml-1">¡Es Hoy!</span>}</p>
+                                    </div>
+                                    <div className="mt-4 flex items-center justify-between">
+                                        <span className="text-xs text-muted-foreground">{client.phone || 'Sin número'}</span>
+                                        {client.phone && (
+                                            <a
+                                                href={whatsappUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="bg-green-500 hover:bg-green-600 text-white p-2 rounded-full transition shadow-sm flex items-center gap-1 text-xs"
+                                                title="Enviar felicitación por WhatsApp"
+                                            >
+                                                <MessageCircle className="h-4 w-4" />
+                                                Felicitar
+                                            </a>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
 
             {/* Quick Actions */}
             <div className="bg-card border rounded-lg p-6">

@@ -27,72 +27,73 @@ enum PaymentMethod {
 }
 
 model Configuration {
-  id               Int      @id @default(autoincrement())
-  primaryColor     String?
-  backgroundColor  String?
-  sidebarColor     String?
-  themeMode        String?  // 'light' or 'dark'
-  logoUrl          String?  @db.Text
-  loginBgUrl       String?  @db.Text
-  
+  id              Int     @id @default(autoincrement())
+  primaryColor    String?
+  backgroundColor String?
+  sidebarColor    String?
+  themeMode       String? // 'light' or 'dark'
+  logoUrl         String? @db.Text
+  loginBgUrl      String? @db.Text
+
   // Business Rules
-  openTime         String   @default("09:00")
-  closeTime        String   @default("21:00")
-  appointmentBuffer Int     @default(10) // Minutes between appointments
+  openTime          String @default("09:00")
+  closeTime         String @default("21:00")
+  appointmentBuffer Int    @default(10) // Minutes between appointments
 
   // Backup Configuration
-  backupEnabled    Boolean  @default(false)
-  backupFrequency  String   @default("daily") // daily, weekly, monthly
-  backupTime       String   @default("02:00") // HH:mm
-  backupEmail      String?
+  backupEnabled   Boolean @default(false)
+  backupFrequency String  @default("daily") // daily, weekly, monthly
+  backupTime      String  @default("02:00") // HH:mm
+  backupEmail     String?
 
   // Push Notification Configuration
-  notificationsEnabled       Boolean @default(true)
-  notifyNewAppointment       Boolean @default(true)
-  notifyAppointmentReminder  Boolean @default(true)
-  notifyDailySummary         Boolean @default(false)
-  notifyPaymentReceived      Boolean @default(false)
-  notifyCancellation         Boolean @default(true)
-  reminderMinutesBefore      Int     @default(60)   // Minutes before appointment
-  dailySummaryTime           String  @default("08:00") // HH:mm
+  notificationsEnabled      Boolean @default(true)
+  notifyNewAppointment      Boolean @default(true)
+  notifyAppointmentReminder Boolean @default(true)
+  notifyDailySummary        Boolean @default(false)
+  notifyPaymentReceived     Boolean @default(false)
+  notifyCancellation        Boolean @default(true)
+  reminderMinutesBefore     Int     @default(60) // Minutes before appointment
+  dailySummaryTime          String  @default("08:00") // HH:mm
+  birthdayMessage           String  @default("¡Hola {name}! 🎉 De parte de todo el equipo de Gracia Spa queremos desearte un muy feliz cumpleaños. 🎂 Tenemos una promoción especial para ti por tu día, ¡escríbenos para agendarla! 💆‍♀️✨") @db.Text
 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model BlockedSlot {
-  id          Int      @id @default(autoincrement())
-  date        DateTime // Specific date, or null for recurring? Let's keep it specific for now.
-  startTime   String   // "HH:mm"
-  endTime     String   // "HH:mm"
-  reason      String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        Int      @id @default(autoincrement())
+  date      DateTime // Specific date, or null for recurring? Let's keep it specific for now.
+  startTime String // "HH:mm"
+  endTime   String // "HH:mm"
+  reason    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model User {
-  id             Int      @id @default(autoincrement())
-  email          String   @unique
+  id             Int        @id @default(autoincrement())
+  email          String     @unique
   passwordHash   String
   name           String
-  phoneNumber    String?  // For payments (Yape/Plin)
+  phoneNumber    String? // For payments (Yape/Plin)
   // role removed
   roles          UserRole[]
-  fingerprintKey String?  // Stores a public key or identifier for biometric auth
-  isActive       Boolean  @default(true)
-  pushToken      String?  // Expo Push Token for notifications
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  fingerprintKey String? // Stores a public key or identifier for biometric auth
+  isActive       Boolean    @default(true)
+  pushToken      String? // Expo Push Token for notifications
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
 
-  appointmentsWorker Appointment[]     @relation("WorkerAppointments")
-  attentions         AttentionWorker[] // Relation to AttentionWorker
-  expenses           Expense[]         @relation("WorkerExpenses")
-  auditLogs          AuditLog[]        @relation("UserAuditLogs")
-  notificationTasks  NotificationTask[] @relation("UserNotificationTasks")
-  commissionPercentage Decimal         @default(50.0) @db.Decimal(5, 2)
+  appointmentsWorker   Appointment[]      @relation("WorkerAppointments")
+  attentions           AttentionWorker[] // Relation to AttentionWorker
+  expenses             Expense[]          @relation("WorkerExpenses")
+  auditLogs            AuditLog[]         @relation("UserAuditLogs")
+  notificationTasks    NotificationTask[] @relation("UserNotificationTasks")
+  commissionPercentage Decimal            @default(50.0) @db.Decimal(5, 2)
 }
 
-model Role { // RBAC Role
+model Role {
   id          Int          @id @default(autoincrement())
   name        String       @unique // e.g., "Admin", "Therapist", "Receptionist"
   description String?
@@ -102,13 +103,13 @@ model Role { // RBAC Role
   updatedAt   DateTime     @updatedAt
 }
 
-model Module { // System Module/Page
-  id          Int          @id @default(autoincrement())
-  key         String       @unique // e.g., "dashboard", "users", "reports"
-  name        String       // e.g., "Dashboard", "Usuarios", "Reportes"
-  roles       RoleModule[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+model Module {
+  id        Int          @id @default(autoincrement())
+  key       String       @unique // e.g., "dashboard", "users", "reports"
+  name      String // e.g., "Dashboard", "Usuarios", "Reportes"
+  roles     RoleModule[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
 }
 
 model RoleModule {
@@ -130,17 +131,29 @@ model UserRole {
 }
 
 model Client {
-  id            Int      @id @default(autoincrement())
+  id            Int       @id @default(autoincrement())
   name          String
-  phone         String?  // WhatsApp notifications
-  email         String?
+  email         String?   @unique
+  phoneNumber   String?
+  phone         String? // WhatsApp notifications
   birthday      DateTime?
-  loyaltyPoints Int      @default(0)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  loyaltyPoints Int       @default(0) // Integration with Loyalty Module
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   appointments Appointment[]
   attentions   Attention[]
+  redemptions  LoyaltyRedemption[]
+}
+
+model LoyaltyRedemption {
+  id        Int      @id @default(autoincrement())
+  clientId  Int
+  client    Client   @relation(fields: [clientId], references: [id])
+  points    Int      // Puntos gastados en este canje
+  notes     String?  // Ej: "Recompensa de masaje de 15 min"
+  
+  createdAt DateTime @default(now())
 }
 
 model ServiceCategory {
@@ -151,18 +164,18 @@ model ServiceCategory {
 }
 
 model Service {
-  id          Int      @id @default(autoincrement())
+  id          Int     @id @default(autoincrement())
   name        String
   description String?
-  price       Decimal  @db.Decimal(10, 2)
-  durationMin Int      // Duration in minutes
-  isActive    Boolean  @default(true)
-  
-  categoryId  Int?
-  category    ServiceCategory? @relation(fields: [categoryId], references: [id])
+  price       Decimal @db.Decimal(10, 2)
+  durationMin Int // Duration in minutes
+  isActive    Boolean @default(true)
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  categoryId Int?
+  category   ServiceCategory? @relation(fields: [categoryId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   appointments Appointment[]
   attentions   Attention[]
@@ -180,25 +193,25 @@ model Product {
 }
 
 model Appointment {
-  id        Int               @id @default(autoincrement())
-  date      DateTime
-  status    AppointmentStatus @default(PENDING)
-  notes     String?
-  cost      Decimal           @default(0) @db.Decimal(10, 2) // Projected cost
-  duration  Int               @default(60) // Duration in minutes
-  
-  clientId  Int
-  client    Client  @relation(fields: [clientId], references: [id])
-  
-  workerId  Int
-  worker    User    @relation("WorkerAppointments", fields: [workerId], references: [id])
-  
+  id       Int               @id @default(autoincrement())
+  date     DateTime
+  status   AppointmentStatus @default(PENDING)
+  notes    String?
+  cost     Decimal           @default(0) @db.Decimal(10, 2) // Projected cost
+  duration Int               @default(60) // Duration in minutes
+
+  clientId Int
+  client   Client @relation(fields: [clientId], references: [id])
+
+  workerId Int
+  worker   User @relation("WorkerAppointments", fields: [workerId], references: [id])
+
   serviceId Int
   service   Service @relation(fields: [serviceId], references: [id])
 
   attentions Attention[]
   payments   Payment[]
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -208,62 +221,62 @@ model Attention {
   date      DateTime @default(now())
   notes     String?
   totalCost Decimal  @db.Decimal(10, 2)
-  
-  clientId  Int
-  client    Client   @relation(fields: [clientId], references: [id])
-  
-  workers   AttentionWorker[] // Support multiple workers
+
+  clientId Int
+  client   Client @relation(fields: [clientId], references: [id])
+
+  workers AttentionWorker[] // Support multiple workers
 
   serviceId Int
-  service   Service  @relation(fields: [serviceId], references: [id])
-  
+  service   Service @relation(fields: [serviceId], references: [id])
+
   appointmentId Int?
   appointment   Appointment? @relation(fields: [appointmentId], references: [id])
 
-  payments      Payment[]
+  payments Payment[]
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model AttentionWorker {
-  id               Int       @id @default(autoincrement())
-  
-  attentionId      Int
-  attention        Attention @relation(fields: [attentionId], references: [id])
-  
-  workerId         Int
-  worker           User      @relation(fields: [workerId], references: [id])
-  
-  commissionAmount Decimal   @db.Decimal(10, 2) @default(0) // Calculated commission
-  isPrimary        Boolean   @default(true) // To identify the main therapist if needed
-  
-  isPaid           Boolean   @default(false) // Track if commission has been paid
-  paidAt           DateTime? // When the commission was paid
-  expenseId        Int?      // Link to the expense record when paid
+  id Int @id @default(autoincrement())
 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  attentionId Int
+  attention   Attention @relation(fields: [attentionId], references: [id])
+
+  workerId Int
+  worker   User @relation(fields: [workerId], references: [id])
+
+  commissionAmount Decimal @default(0) @db.Decimal(10, 2) // Calculated commission
+  isPrimary        Boolean @default(true) // To identify the main therapist if needed
+
+  isPaid    Boolean   @default(false) // Track if commission has been paid
+  paidAt    DateTime? // When the commission was paid
+  expenseId Int? // Link to the expense record when paid
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([attentionId, workerId]) // Prevent duplicate assignment
 }
 
 model Payment {
-  id            Int           @id @default(autoincrement())
-  amount        Decimal       @db.Decimal(10, 2)
-  date          DateTime      @default(now())
-  method        PaymentMethod @default(CASH)
-  type          PaymentType   @default(FULL)
-  notes         String?
+  id     Int           @id @default(autoincrement())
+  amount Decimal       @db.Decimal(10, 2)
+  date   DateTime      @default(now())
+  method PaymentMethod @default(CASH)
+  type   PaymentType   @default(FULL)
+  notes  String?
 
   appointmentId Int?
   appointment   Appointment? @relation(fields: [appointmentId], references: [id])
 
-  attentionId   Int?
-  attention     Attention?   @relation(fields: [attentionId], references: [id])
+  attentionId Int?
+  attention   Attention? @relation(fields: [attentionId], references: [id])
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Expense {
@@ -271,13 +284,13 @@ model Expense {
   description String
   amount      Decimal  @db.Decimal(10, 2)
   date        DateTime @default(now())
-  category    String?  // Sueldo, Alquiler, Insumos, etc.
-  
-  workerId    Int?
-  worker      User?    @relation("WorkerExpenses", fields: [workerId], references: [id])
+  category    String? // Sueldo, Alquiler, Insumos, etc.
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  workerId Int?
+  worker   User? @relation("WorkerExpenses", fields: [workerId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum PaymentType {
@@ -287,16 +300,16 @@ enum PaymentType {
 }
 
 model AuditLog {
-  id        Int      @id @default(autoincrement())
-  entity    String   // e.g., "Client", "Appointment"
-  entityId  Int?     // The ID of the affected record
-  action    String   // "CREATE", "UPDATE", "DELETE"
-  oldData   Json?    // State before the change
-  newData   Json?    // State after the change
-  
-  userId    Int?     // User who made the change
-  user      User?    @relation("UserAuditLogs", fields: [userId], references: [id])
-  
+  id       Int    @id @default(autoincrement())
+  entity   String // e.g., "Client", "Appointment"
+  entityId Int? // The ID of the affected record
+  action   String // "CREATE", "UPDATE", "DELETE"
+  oldData  Json? // State before the change
+  newData  Json? // State after the change
+
+  userId Int? // User who made the change
+  user   User? @relation("UserAuditLogs", fields: [userId], references: [id])
+
   createdAt DateTime @default(now())
 }
 
@@ -314,25 +327,24 @@ enum NotificationTaskStatus {
 }
 
 model NotificationTask {
-  id             Int                    @id @default(autoincrement())
-  type           NotificationTaskType
-  executeAt      DateTime               // Exact time when this should be processed
-  status         NotificationTaskStatus @default(PENDING)
-  title          String                 // Pre-computed title
-  body           String                 // Pre-computed body
-  data           Json?                  // Any extra payload for the push notification
-  
+  id        Int                    @id @default(autoincrement())
+  type      NotificationTaskType
+  executeAt DateTime // Exact time when this should be processed
+  status    NotificationTaskStatus @default(PENDING)
+  title     String // Pre-computed title
+  body      String // Pre-computed body
+  data      Json? // Any extra payload for the push notification
+
   // Who should receive this notification? (Typically the admin or worker)
-  targetUserId   Int
-  targetUser     User                   @relation("UserNotificationTasks", fields: [targetUserId], references: [id])
-  
+  targetUserId Int
+  targetUser   User @relation("UserNotificationTasks", fields: [targetUserId], references: [id])
+
   // Optional relations to the entities this task refers to
-  relatedClientId     Int?
+  relatedClientId      Int?
   relatedAppointmentId Int?
-  
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([executeAt, status]) // Critical index for fast polling
 }
-

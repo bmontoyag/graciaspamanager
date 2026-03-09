@@ -57,6 +57,13 @@ export default function ExpensesPage() {
         e.category?.toLowerCase().includes(filter.toLowerCase())
     );
 
+    const formatSafeDate = (dateString: string) => {
+        if (!dateString) return '';
+        const d = new Date(dateString);
+        d.setMinutes(d.getMinutes() + d.getTimezoneOffset());
+        return d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    };
+
     return (
         <PageContainer>
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
@@ -94,6 +101,7 @@ export default function ExpensesPage() {
                                 <th className="p-4 font-medium">Fecha</th>
                                 <th className="p-4 font-medium">Descripción</th>
                                 <th className="p-4 font-medium">Categoría</th>
+                                <th className="p-4 font-medium">Asignado a</th>
                                 <th className="p-4 font-medium text-right">Monto</th>
                                 <th className="p-4 font-medium text-right">Acciones</th>
                             </tr>
@@ -107,12 +115,21 @@ export default function ExpensesPage() {
                             )}
                             {filteredExpenses.map((expense) => (
                                 <tr key={expense.id} className="border-b hover:bg-muted/50 transition">
-                                    <td className="p-4">{new Date(expense.date).toLocaleDateString()}</td>
+                                    <td className="p-4">{formatSafeDate(expense.date)}</td>
                                     <td className="p-4 font-medium">{expense.description}</td>
                                     <td className="p-4">
                                         <span className="bg-secondary text-secondary-foreground px-2 py-1 rounded text-xs">
                                             {expense.category}
                                         </span>
+                                    </td>
+                                    <td className="p-4">
+                                        {expense.worker ? (
+                                            <span className="bg-primary/10 text-primary px-2 py-1 rounded text-xs truncate max-w-[150px] inline-block">
+                                                {expense.worker.name}
+                                            </span>
+                                        ) : (
+                                            <span className="text-muted-foreground text-xs italic">Negocio</span>
+                                        )}
                                     </td>
                                     <td className="p-4 text-right font-mono text-red-500">- S/.{Number(expense.amount).toFixed(2)}</td>
                                     <td className="p-4 text-right">

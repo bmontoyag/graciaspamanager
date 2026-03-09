@@ -17,7 +17,13 @@ interface AppointmentDialogProps {
     };
 }
 
-const EMPTY_NEW_CLIENT = { name: '', phone: '', email: '' };
+const EMPTY_NEW_CLIENT = { name: '', phone: '', email: '', birthday: '' };
+
+const getLocalDatetimeString = (dateObj: Date) => {
+    const tzOffset = dateObj.getTimezoneOffset() * 60000;
+    const localISO = new Date(dateObj.getTime() - tzOffset).toISOString();
+    return localISO.slice(0, 16);
+};
 
 export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate, appointment, config }: AppointmentDialogProps) {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -63,7 +69,7 @@ export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate
                     clientId: appointment.clientId?.toString() || '',
                     serviceId: appointment.serviceId?.toString() || '',
                     workerId: appointment.workerId?.toString() || '',
-                    date: appointment.date ? new Date(appointment.date).toISOString().slice(0, 16) : '',
+                    date: appointment.date ? getLocalDatetimeString(new Date(appointment.date)) : '',
                     status: appointment.status || 'PENDING',
                     cost: appointment.cost?.toString() || '',
                     duration: appointment.duration?.toString() || '60',
@@ -102,7 +108,12 @@ export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate
             const res = await fetch(`${API_URL}/clients`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: newClient.name.trim(), phone: newClient.phone || undefined, email: newClient.email || undefined })
+                body: JSON.stringify({
+                    name: newClient.name.trim(),
+                    phone: newClient.phone || undefined,
+                    email: newClient.email || undefined,
+                    birthday: newClient.birthday ? new Date(newClient.birthday).toISOString() : undefined
+                })
             });
             if (!res.ok) throw new Error((await res.json()).message || 'Error');
             const created = await res.json();
@@ -189,12 +200,12 @@ export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate
                         {showNewClient && (
                             <div className="mb-2 p-3 border border-dashed border-primary/50 rounded-lg bg-primary/5 space-y-2">
                                 <p className="text-xs font-semibold text-primary">Crear nuevo cliente</p>
-                                <div className="grid grid-cols-3 gap-2">
+                                <div className="grid grid-cols-2 gap-2">
                                     <input
                                         type="text" placeholder="Nombre *"
                                         value={newClient.name}
                                         onChange={e => setNewClient(p => ({ ...p, name: e.target.value }))}
-                                        className="col-span-1 p-2 text-sm border rounded-md bg-background"
+                                        className="col-span-2 p-2 text-sm border rounded-md bg-background"
                                         autoFocus
                                     />
                                     <input
@@ -208,6 +219,12 @@ export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate
                                         value={newClient.email}
                                         onChange={e => setNewClient(p => ({ ...p, email: e.target.value }))}
                                         className="p-2 text-sm border rounded-md bg-background"
+                                    />
+                                    <input
+                                        type="date" title="Fecha de Nacimiento"
+                                        value={newClient.birthday}
+                                        onChange={e => setNewClient(p => ({ ...p, birthday: e.target.value }))}
+                                        className="col-span-2 p-2 text-sm border rounded-md bg-background text-muted-foreground"
                                     />
                                 </div>
                                 <button

@@ -1,13 +1,21 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { DollarSign, TrendingUp, TrendingDown, Save, Calendar, Users, CheckCircle2 } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, Save, Calendar, Users, CheckCircle2, AlertTriangle } from 'lucide-react';
 import ExpenseDialog from '../../../components/expenses/ExpenseDialog';
 import { PageContainer } from '@/components/layout/PageContainer';
 
 export default function DailyClosingPage() {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+
+    // Obtener la fecha local correctamente sin importar la hora UTC
+    const getLocalToday = () => {
+        const d = new Date();
+        d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+        return d.toISOString().split('T')[0];
+    };
+
+    const [selectedDate, setSelectedDate] = useState(getLocalToday());
     const [attentions, setAttentions] = useState<any[]>([]);
     const [expenses, setExpenses] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
@@ -29,16 +37,27 @@ export default function DailyClosingPage() {
             const attentionsData = await attentionsRes.json();
             const expensesData = await expensesRes.json();
 
-            const dateStr = new Date(selectedDate).toISOString().split('T')[0];
+            const dateStr = selectedDate;
+
+            const safeGetDate = (isoString: string) => {
+                if (!isoString) return '';
+                // Si viene como Date puro o viene como ISO de medianoche
+                if (isoString.includes('T00:00:00.000Z') || isoString.length === 10) {
+                    return isoString.split('T')[0];
+                }
+                // Si la fecha fue grabada con hora real local del servidor/navegador,
+                // la parseamos y devolvemos YYYY-MM-DD
+                const d = new Date(isoString);
+                const localD = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
+                return localD.toISOString().split('T')[0];
+            };
 
             const filteredAttentions = (Array.isArray(attentionsData) ? attentionsData : []).filter((att: any) => {
-                const attDate = new Date(att.date).toISOString().split('T')[0];
-                return attDate === dateStr;
+                return safeGetDate(att.date) === dateStr;
             });
 
             const filteredExpenses = (Array.isArray(expensesData) ? expensesData : []).filter((exp: any) => {
-                const expDate = new Date(exp.date).toISOString().split('T')[0];
-                return expDate === dateStr;
+                return safeGetDate(exp.date) === dateStr;
             });
 
             setAttentions(filteredAttentions);
@@ -57,6 +76,19 @@ export default function DailyClosingPage() {
     const netProfit = totalIncome - totalExpenses;
     const totalClients = new Set(attentions.map(att => att.clientId)).size;
 
+    // Helper functions for date formatting
+    const formatDateObj = (dateString: string) => {
+        const d = new Date(dateString);
+        // Add offset to display correct local date from UTC
+        d.setMinutes(d.getMinutes() + d.getTimezoneOffset());
+        return d;
+    };
+
+    const getFormattedDateText = (dateString: string) => {
+        const date = formatDateObj(dateString);
+        return date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    };
+
     // Calculate therapist commissions with payment status
     const therapistPayments = attentions.reduce((acc: any, att) => {
         if (att.workers && Array.isArray(att.workers)) {
@@ -74,21 +106,36 @@ export default function DailyClosingPage() {
                         phoneNumber: workerPhone,
                         totalCommission: 0,
                         attentionCount: 0,
-                        allPaid: true,
-                        workerRecords: []
+                        paymentStatus: 'PENDING',
+                        workerRecords: [],
+                        paidExpenseInfo: null // Store expense data if we find a matching payment
                     };
                 }
 
                 acc[workerId].totalCommission += commission;
                 acc[workerId].attentionCount += 1;
                 acc[workerId].workerRecords.push(w);
-                if (!isPaid) {
-                    acc[workerId].allPaid = false;
-                }
             });
         }
         return acc;
     }, {});
+
+    // Second pass: Cross-reference with Expenses to auto-detect if already paid
+    expenses.forEach((exp: any) => {
+        if (exp.workerId && therapistPayments[exp.workerId]) {
+            const therapist = therapistPayments[exp.workerId];
+            const expenseAmount = Number(exp.amount || 0);
+
+            therapist.paidExpenseInfo = exp;
+
+            // Validate amount
+            if (Math.abs(expenseAmount - therapist.totalCommission) <= 1) {
+                therapist.paymentStatus = 'PAID';
+            } else {
+                therapist.paymentStatus = 'OBSERVED';
+            }
+        }
+    });
 
     const therapistList = Object.values(therapistPayments);
 
@@ -210,11 +257,30 @@ export default function DailyClosingPage() {
                                                         S/ {therapist.totalCommission.toFixed(2)}
                                                     </td>
                                                     <td className="p-4 text-center">
-                                                        {therapist.allPaid ? (
-                                                            <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium">
-                                                                <CheckCircle2 className="h-3 w-3" />
-                                                                Pagado
-                                                            </span>
+                                                        {therapist.paymentStatus === 'PAID' ? (
+                                                            <div className="flex flex-col items-center gap-1">
+                                                                <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium">
+                                                                    <CheckCircle2 className="h-3 w-3" />
+                                                                    Pagado
+                                                                </span>
+                                                                {therapist.paidExpenseInfo && (
+                                                                    <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                                                                        (S/{Number(therapist.paidExpenseInfo.amount).toFixed(2)})
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        ) : therapist.paymentStatus === 'OBSERVED' ? (
+                                                            <div className="flex flex-col items-center gap-1">
+                                                                <span className="inline-flex items-center gap-1 bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-medium">
+                                                                    <AlertTriangle className="h-3 w-3" />
+                                                                    Observado
+                                                                </span>
+                                                                {therapist.paidExpenseInfo && (
+                                                                    <span className="text-[10px] text-orange-600 font-medium whitespace-nowrap">
+                                                                        (Pagado: S/{Number(therapist.paidExpenseInfo.amount).toFixed(2)})
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                         ) : (
                                                             <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-medium">
                                                                 Pendiente
@@ -222,16 +288,34 @@ export default function DailyClosingPage() {
                                                         )}
                                                     </td>
                                                     <td className="p-4 text-center">
-                                                        {!therapist.allPaid && (
+                                                        {therapist.paymentStatus !== 'PENDING' ? (
+                                                            <div className="flex gap-2 justify-center">
+                                                                {therapist.paidExpenseInfo && (
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            // Pass the existing expense so ExpenseDialog mounts in PATCH/Edit mode
+                                                                            setSelectedTherapist({ ...therapist });
+                                                                            setIsExpenseDialogOpen(true);
+                                                                        }}
+                                                                        className="bg-accent text-accent-foreground px-3 py-1 rounded-md text-xs hover:opacity-90 transition"
+                                                                        title="Editar este pago (Gasto)"
+                                                                    >
+                                                                        Editar Pago
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        ) : (
                                                             <div className="flex gap-2 justify-center">
                                                                 {therapist.phoneNumber && (
                                                                     <button
                                                                         onClick={() => {
                                                                             const phone = therapist.phoneNumber.replace(/\s/g, '');
+                                                                            const amount = therapist.totalCommission.toFixed(2);
+                                                                            // Copiar el teléfono al portapapeles para pegarlo rápidamente en Yape
                                                                             navigator.clipboard.writeText(phone);
-                                                                            alert(`Número ${phone} copiado al portapapeles. Abre Yape para pagar.`);
-                                                                            // Attempt to open deep link if on mobile (optional)
-                                                                            // window.location.href = `yape://pay?phone=${phone}`; 
+                                                                            alert(`📱 Teléfono ${phone} copiado al portapapeles.\n💰 Monto exacto a pagar: S/ ${amount}\n\nAbriendo Yape...`);
+                                                                            // Intentar abrir el app de Yape de forma nativa
+                                                                            window.location.href = 'yape://';
                                                                         }}
                                                                         className="bg-purple-600 text-white px-3 py-1 rounded-md text-xs hover:bg-purple-700 transition flex items-center gap-1"
                                                                         title={`Yape a: ${therapist.phoneNumber}`}
@@ -324,17 +408,27 @@ export default function DailyClosingPage() {
                                             <tr>
                                                 <th className="p-3 text-left font-medium">Descripción</th>
                                                 <th className="p-3 text-left font-medium">Categoría</th>
+                                                <th className="p-3 text-left font-medium">Asignado a</th>
                                                 <th className="p-3 text-right font-medium">Monto</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {expenses.map((exp) => (
                                                 <tr key={exp.id} className="border-b hover:bg-muted/50 transition">
-                                                    <td className="p-3">{exp.description}</td>
+                                                    <td className="p-3 font-medium">{exp.description}</td>
                                                     <td className="p-3">
                                                         <span className="bg-secondary text-secondary-foreground px-2 py-1 rounded text-xs">
                                                             {exp.category}
                                                         </span>
+                                                    </td>
+                                                    <td className="p-3">
+                                                        {exp.worker ? (
+                                                            <span className="bg-primary/10 text-primary px-2 py-1 rounded text-xs truncate max-w-[150px] inline-block">
+                                                                {exp.worker.name}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-muted-foreground text-xs italic">Negocio</span>
+                                                        )}
                                                     </td>
                                                     <td className="p-3 text-right font-mono text-red-600">S/ {Number(exp.amount).toFixed(2)}</td>
                                                 </tr>
@@ -357,11 +451,16 @@ export default function DailyClosingPage() {
                         setSelectedTherapist(null);
                     }}
                     onSave={handlePaymentSaved}
-                    expense={{
-                        description: `Pago de comisión - ${selectedTherapist.name}`,
+                    expense={selectedTherapist.paidExpenseInfo ? {
+                        ...selectedTherapist.paidExpenseInfo,
+                        // Always keep the workerId synced in case they edit the expense
+                        workerId: selectedTherapist.id
+                    } : {
+                        description: `Pago atenciones del día ${getFormattedDateText(selectedDate)} - ${selectedTherapist.name}`,
                         amount: selectedTherapist.totalCommission,
                         category: 'Salarios',
-                        date: selectedDate
+                        date: selectedDate,
+                        workerId: selectedTherapist.id
                     }}
                 />
             )}

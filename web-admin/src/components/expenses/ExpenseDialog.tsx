@@ -10,14 +10,31 @@ interface ExpenseDialogProps {
     expense?: any;
 }
 
+const getLocalToday = () => {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().split('T')[0];
+};
+
 export default function ExpenseDialog({ isOpen, onClose, onSave, expense }: ExpenseDialogProps) {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     const [formData, setFormData] = useState({
         description: '',
         amount: '',
         category: '',
-        date: new Date().toISOString().split('T')[0]
+        workerId: '', // '' significa Gracia Spa (null en DB)
+        date: getLocalToday()
     });
+    const [users, setUsers] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (isOpen) {
+            fetch(`${API_URL}/users`)
+                .then(res => res.json())
+                .then(data => setUsers(Array.isArray(data) ? data : []))
+                .catch(err => console.error("Error fetching users:", err));
+        }
+    }, [isOpen]);
 
     useEffect(() => {
         if (expense) {
@@ -25,14 +42,16 @@ export default function ExpenseDialog({ isOpen, onClose, onSave, expense }: Expe
                 description: expense.description || '',
                 amount: expense.amount?.toString() || '',
                 category: expense.category || '',
-                date: expense.date ? new Date(expense.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+                workerId: expense.workerId ? expense.workerId.toString() : '',
+                date: expense.date ? new Date(expense.date).toISOString().split('T')[0] : getLocalToday()
             });
         } else {
             setFormData({
                 description: '',
                 amount: '',
                 category: '',
-                date: new Date().toISOString().split('T')[0]
+                workerId: '',
+                date: getLocalToday()
             });
         }
     }, [expense, isOpen]);
@@ -46,21 +65,26 @@ export default function ExpenseDialog({ isOpen, onClose, onSave, expense }: Expe
         e.preventDefault();
 
         try {
-            const payload = {
+            const payload: any = {
                 description: formData.description,
                 amount: parseFloat(formData.amount),
                 category: formData.category,
-                date: new Date(formData.date).toISOString()
+                // Fijamos UTC 12 PM para evitar cruces
+                date: new Date(formData.date + 'T12:00:00.000Z').toISOString()
             };
+            if (formData.workerId) {
+                payload.workerId = parseInt(formData.workerId);
+            }
 
             console.log('Sending expense payload:', payload);
 
-            const url = expense
+            const isUpdate = expense && expense.id;
+            const url = isUpdate
                 ? `${API_URL}/expenses/${expense.id}`
                 : `${API_URL}/expenses`;
 
             const res = await fetch(url, {
-                method: expense ? 'PATCH' : 'POST',
+                method: isUpdate ? 'PATCH' : 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
@@ -139,13 +163,30 @@ export default function ExpenseDialog({ isOpen, onClose, onSave, expense }: Expe
                             required
                         >
                             <option value="">Seleccionar...</option>
-                            <option value="Salarios">Salarios</option>
+                            <option value="Salarios">Salarios/Comisiones</option>
                             <option value="Alquiler">Alquiler</option>
                             <option value="Servicios">Servicios</option>
                             <option value="Insumos">Insumos</option>
                             <option value="Mantenimiento">Mantenimiento</option>
                             <option value="Marketing">Marketing</option>
                             <option value="Otros">Otros</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Asignar a</label>
+                        <select
+                            name="workerId"
+                            value={formData.workerId}
+                            onChange={handleChange}
+                            className="w-full p-2 border rounded-md bg-background"
+                        >
+                            <option value="">Negocio (Gracia Spa)</option>
+                            {users.map((u) => (
+                                <option key={u.id} value={u.id}>
+                                    {u.name}
+                                </option>
+                            ))}
                         </select>
                     </div>
 

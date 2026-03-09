@@ -11,8 +11,14 @@ interface AttentionDialogProps {
     attention?: any;
 }
 
-const EMPTY_CLIENT = { name: '', phone: '', email: '' };
+const EMPTY_CLIENT = { name: '', phone: '', email: '', birthday: '' };
 const EMPTY_SERVICE = { name: '', price: '', durationMin: '60' };
+
+const getLocalToday = () => {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().split('T')[0];
+};
 
 export default function AttentionDialog({ isOpen, onClose, onSave, attention }: AttentionDialogProps) {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -35,7 +41,7 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
     const [formData, setFormData] = useState({
         clientId: '', serviceId: '', workerIds: [] as string[],
         totalCost: '', notes: '',
-        date: new Date().toISOString().split('T')[0],
+        date: getLocalToday(),
         appointmentId: ''
     });
 
@@ -73,11 +79,11 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
                 workerIds: attention.workers?.map((w: any) => w.workerId.toString()) || [],
                 totalCost: attention.totalCost?.toString() || '',
                 notes: attention.notes || '',
-                date: attention.date ? new Date(attention.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                date: attention.date ? new Date(attention.date).toISOString().split('T')[0] : getLocalToday(),
                 appointmentId: attention.appointmentId?.toString() || ''
             });
         } else {
-            setFormData({ clientId: '', serviceId: '', workerIds: [], totalCost: '', notes: '', date: new Date().toISOString().split('T')[0], appointmentId: '' });
+            setFormData({ clientId: '', serviceId: '', workerIds: [], totalCost: '', notes: '', date: getLocalToday(), appointmentId: '' });
         }
     }, [isOpen, attention]);
 
@@ -104,7 +110,12 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
         try {
             const res = await fetch(`${API_URL}/clients`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: newClient.name.trim(), phone: newClient.phone || undefined, email: newClient.email || undefined })
+                body: JSON.stringify({
+                    name: newClient.name.trim(),
+                    phone: newClient.phone || undefined,
+                    email: newClient.email || undefined,
+                    birthday: newClient.birthday ? new Date(newClient.birthday).toISOString() : undefined
+                })
             });
             if (!res.ok) throw new Error((await res.json()).message || 'Error');
             const created = await res.json();
@@ -145,7 +156,9 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
                 workerIds: formData.workerIds.map(Number),
                 totalCost: Number(formData.totalCost),
                 notes: formData.notes,
-                date: new Date(formData.date).toISOString()
+                // Forzamos que la fecha guardada sea siempre el mediodía UTC de la fecha elegida
+                // Esto previene que si estás a -5 o +5 horas, la fecha retroceda o adelante un día en la BD
+                date: new Date(formData.date + 'T12:00:00.000Z').toISOString()
             };
             if (formData.appointmentId) payload.appointmentId = Number(formData.appointmentId);
 
@@ -195,13 +208,15 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
                         {showNewClient ? (
                             <div className="p-3 border border-dashed border-primary/50 rounded-lg bg-primary/5 space-y-2">
                                 <p className="text-xs font-semibold text-primary">Crear nuevo cliente</p>
-                                <div className="grid grid-cols-3 gap-2">
+                                <div className="grid grid-cols-2 gap-2">
                                     <input type="text" placeholder="Nombre *" value={newClient.name} onChange={e => setNewClient(p => ({ ...p, name: e.target.value }))}
-                                        className="col-span-1 p-2 text-sm border rounded-md bg-background" autoFocus />
+                                        className="col-span-2 p-2 text-sm border rounded-md bg-background" autoFocus />
                                     <input type="tel" placeholder="Teléfono" value={newClient.phone} onChange={e => setNewClient(p => ({ ...p, phone: e.target.value }))}
                                         className="p-2 text-sm border rounded-md bg-background" />
                                     <input type="email" placeholder="Email" value={newClient.email} onChange={e => setNewClient(p => ({ ...p, email: e.target.value }))}
                                         className="p-2 text-sm border rounded-md bg-background" />
+                                    <input type="date" title="Fecha de Nacimiento" value={newClient.birthday} onChange={e => setNewClient(p => ({ ...p, birthday: e.target.value }))}
+                                        className="col-span-2 p-2 text-sm border rounded-md bg-background text-muted-foreground" />
                                 </div>
                                 <button type="button" onClick={handleCreateClient} disabled={creatingClient || !newClient.name.trim()}
                                     className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-primary text-primary-foreground rounded-md hover:opacity-90 disabled:opacity-50">

@@ -28,4 +28,5 @@ export class UpdateConfigurationDto {
     @IsOptional() @IsBoolean() notifyCancellation?: boolean;         // Cita cancelada
     @IsOptional() @IsInt() reminderMinutesBefore?: number;       // Minutos antes del recordatorio
     @IsOptional() @IsString() dailySummaryTime?: string;            // Hora del resumen diario (HH:mm)
+    @IsOptional() @IsString() birthdayMessage?: string;
 }

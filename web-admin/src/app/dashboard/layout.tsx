@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Home, Calendar, Users, DollarSign, Settings, FileText, BarChart3, ClipboardList, Menu, X, User, Palette, Package, Database, Clock } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, Settings, LogOut, Menu, X, FileText, Package, DollarSign, ClipboardList, BarChart3, Clock, Database, ChevronDown, ChevronRight, UserCircle, Key, UserPlus, Gift, Home, Palette, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -195,12 +195,20 @@ export default function DashboardLayout({
                         )}
 
                         {hasPermission('clients') && (
-                            <li>
-                                <Link href="/dashboard/clients" onClick={closeSidebar} className="flex items-center rounded-md p-2 hover:bg-white/10 transition-colors">
-                                    <Users className="mr-3 h-5 w-5" />
-                                    Clientes
-                                </Link>
-                            </li>
+                            <>
+                                <li>
+                                    <Link href="/dashboard/clients" onClick={closeSidebar} className="flex items-center rounded-md p-2 hover:bg-white/10 transition-colors">
+                                        <Users className="mr-3 h-5 w-5" />
+                                        Clientes
+                                    </Link>
+                                </li>
+                                <li>
+                                    <Link href="/dashboard/loyalty" onClick={closeSidebar} className="flex items-center rounded-md p-2 hover:bg-white/10 transition-colors text-amber-300 hover:text-amber-200">
+                                        <Gift className="mr-3 h-5 w-5" />
+                                        Fidelidad
+                                    </Link>
+                                </li>
+                            </>
                         )}
 
                         {hasPermission('expenses') && (

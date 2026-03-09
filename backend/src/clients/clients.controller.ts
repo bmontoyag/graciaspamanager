@@ -5,7 +5,7 @@ import { UpdateClientDto } from './dto/update-client.dto';
 
 @Controller('clients')
 export class ClientsController {
-  constructor(private readonly clientsService: ClientsService) {}
+  constructor(private readonly clientsService: ClientsService) { }
 
   @Post()
   create(@Body() createClientDto: CreateClientDto) {
@@ -20,6 +20,11 @@ export class ClientsController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.clientsService.findOne(+id);
+  }
+
+  @Post('sync-loyalty')
+  syncLoyaltyPoints() {
+    return this.clientsService.syncLoyaltyPoints();
   }
 
   @Patch(':id')

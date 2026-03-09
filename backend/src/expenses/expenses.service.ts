@@ -15,6 +15,7 @@ export class ExpensesService {
 
   findAll() {
     return this.prisma.expense.findMany({
+      include: { worker: true },
       orderBy: { date: 'desc' },
     });
   }
@@ -22,6 +23,7 @@ export class ExpensesService {
   findOne(id: number) {
     return this.prisma.expense.findUnique({
       where: { id },
+      include: { worker: true },
     });
   }
 
