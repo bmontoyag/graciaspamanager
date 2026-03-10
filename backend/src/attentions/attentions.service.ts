@@ -16,7 +16,10 @@ export class AttentionsService {
     });
 
     const totalCost = Number(rest.totalCost) || 0;
-    const splitCost = workerIds.length > 0 ? totalCost / workerIds.length : totalCost;
+    const workerCounts = workerIds.length > 0 ? workerIds.length : 1;
+    const splitCost = totalCost / workerCounts;
+
+    console.log(`[Audit] Creando atención: Total=${totalCost}, Terapeutas=${workerIds.length}, Dividido=${splitCost}`);
 
     // Use a transaction to ensure both the attention is created and points are updated
     return this.prisma.$transaction(async (tx) => {
@@ -25,14 +28,17 @@ export class AttentionsService {
           ...rest,
           workers: {
             create: workerIds.map((workerId, index) => {
-              const worker = workersInfo.find(w => w.id === workerId);
-              const percentage = worker ? Number(worker.commissionPercentage || 50) : 50;
-              const commissionAmount = splitCost * (percentage / 100);
+              const worker = workersInfo.find(w => Number(w.id) === Number(workerId));
+              const pStr = worker?.commissionPercentage?.toString() || '50';
+              const percentage = parseFloat(pStr) || 50;
+              const commissionAmount = Number(splitCost) * (percentage / 100);
+
+              console.log(`[Audit] -> Comision para ${worker?.name || workerId}: ${commissionAmount} (${percentage}%)`);
 
               return {
-                workerId,
+                workerId: Number(workerId),
                 isPrimary: index === 0,
-                commissionAmount
+                commissionAmount: Number(commissionAmount.toFixed(2))
               };
             })
           }
@@ -104,10 +110,13 @@ export class AttentionsService {
           : (await tx.attention.findUnique({ where: { id } }))?.totalCost;
 
         const totalCost = Number(totalCostStr) || 0;
-        const splitCost = totalCost / workerIds.length;
+        const workerCounts = workerIds.length > 0 ? workerIds.length : 1;
+        const splitCost = totalCost / workerCounts;
+
+        console.log(`[Audit] Editando atención ${id}: Total=${totalCost}, Terapeutas=${workerIds.length}, Dividido=${splitCost}`);
 
         const workersInfo = await tx.user.findMany({
-          where: { id: { in: workerIds } }
+          where: { id: { in: workerIds.map(Number) } }
         });
 
         // Delete all old worker relations
@@ -122,14 +131,17 @@ export class AttentionsService {
             ...rest,
             workers: {
               create: workerIds.map((workerId, index) => {
-                const worker = workersInfo.find(w => w.id === workerId);
-                const percentage = worker ? Number(worker.commissionPercentage || 50) : 50;
-                const commissionAmount = splitCost * (percentage / 100);
+                const worker = workersInfo.find(w => Number(w.id) === Number(workerId));
+                const pStr = worker?.commissionPercentage?.toString() || '50';
+                const percentage = parseFloat(pStr) || 50;
+                const commissionAmount = Number(splitCost) * (percentage / 100);
+
+                console.log(`[Audit] -> Nueva Comision para ${worker?.name || workerId}: ${commissionAmount} (${percentage}%)`);
 
                 return {
-                  workerId,
+                  workerId: Number(workerId),
                   isPrimary: index === 0,
-                  commissionAmount
+                  commissionAmount: Number(commissionAmount.toFixed(2))
                 };
               })
             }
