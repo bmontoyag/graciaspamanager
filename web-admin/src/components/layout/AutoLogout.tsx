@@ -22,7 +22,7 @@ export function AutoLogout({ children, timeoutMinutes = 15 }: { children: React.
             localStorage.removeItem('userRoles');
 
             alert(`Sesión expirada por inactividad tras ${timeoutMinutes} minutos.`);
-            router.push('/login');
+            router.push('/');
         }, ms);
     };
 
