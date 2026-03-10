@@ -8,18 +8,20 @@ export class AttentionsService {
   constructor(private prisma: PrismaService) { }
 
   async create(createAttentionDto: CreateAttentionDto) {
-    const { workerIds, ...rest } = createAttentionDto;
-
-    // Obtener los porcentajes de comision de los terapeutas
-    const workersInfo = await this.prisma.user.findMany({
-      where: { id: { in: workerIds } }
-    });
+    // Asegurar que workerIds sean números siempre
+    const workerIds = (createAttentionDto.workerIds || []).map(id => Number(id));
+    const { workerIds: _, ...rest } = createAttentionDto;
 
     const totalCost = Number(rest.totalCost) || 0;
     const workerCounts = workerIds.length > 0 ? workerIds.length : 1;
     const splitCost = totalCost / workerCounts;
 
-    console.log(`[Audit] Creando atención: Total=${totalCost}, Terapeutas=${workerIds.length}, Dividido=${splitCost}`);
+    console.log(`[CommissionDebug] CREANDO: Total=${totalCost}, Terapeutas=${workerIds.join(',')}, splitCost=${splitCost}`);
+
+    // Obtener los porcentajes de comision de los terapeutas de forma segura
+    const workersInfo = await this.prisma.user.findMany({
+      where: { id: { in: workerIds } }
+    });
 
     // Use a transaction to ensure both the attention is created and points are updated
     return this.prisma.$transaction(async (tx) => {
@@ -33,7 +35,7 @@ export class AttentionsService {
               const percentage = parseFloat(pStr) || 50;
               const commissionAmount = Number(splitCost) * (percentage / 100);
 
-              console.log(`[Audit] -> Comision para ${worker?.name || workerId}: ${commissionAmount} (${percentage}%)`);
+              console.log(`[CommissionDebug] -> Terapeuta ID ${workerId}: ${percentage}% de ${splitCost} = ${commissionAmount}`);
 
               return {
                 workerId: Number(workerId),
