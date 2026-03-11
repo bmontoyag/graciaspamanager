@@ -57,6 +57,10 @@ model Configuration {
   dailySummaryTime          String  @default("08:00") // HH:mm
   birthdayMessage           String  @default("¡Hola {name}! 🎉 De parte de todo el equipo de Gracia Spa queremos desearte un muy feliz cumpleaños. 🎂 Tenemos una promoción especial para ti por tu día, ¡escríbenos para agendarla! 💆‍♀️✨") @db.Text
 
+  // Marketing & Communications
+  whatsappMessageTemplate   String   @default("Hola {name}, tu reserva para {service} el {date} a las {time} está confirmada.") @db.Text
+  discoverySources          String[] @default(["Facebook", "Instagram", "TikTok", "Referencia", "Google Maps"])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -131,15 +135,16 @@ model UserRole {
 }
 
 model Client {
-  id            Int       @id @default(autoincrement())
-  name          String
-  email         String?   @unique
-  phoneNumber   String?
-  phone         String? // WhatsApp notifications
-  birthday      DateTime?
-  loyaltyPoints Int       @default(0) // Integration with Loyalty Module
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id              Int       @id @default(autoincrement())
+  name            String
+  email           String?   @unique
+  phoneNumber     String?
+  phone           String? // WhatsApp notifications
+  birthday        DateTime?
+  discoverySource String? // e.g., TikTok, Instagram, Referencia
+  loyaltyPoints   Int       @default(0) // Integration with Loyalty Module
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   appointments Appointment[]
   attentions   Attention[]

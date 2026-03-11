@@ -20,4 +20,8 @@ export class CreateClientDto {
     @IsNumber()
     @IsOptional()
     loyaltyPoints?: number;
+
+    @IsString()
+    @IsOptional()
+    discoverySource?: string;
 }

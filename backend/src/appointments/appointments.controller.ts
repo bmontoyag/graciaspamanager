@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe } from '@nestjs/common';
 import { AppointmentsService } from './appointments.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
+import { CreateBatchAppointmentDto } from './dto/create-batch-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 
 @Controller('appointments')
@@ -10,6 +11,11 @@ export class AppointmentsController {
     @Post()
     create(@Body() createAppointmentDto: CreateAppointmentDto) {
         return this.appointmentsService.create(createAppointmentDto);
+    }
+
+    @Post('batch')
+    createBatch(@Body() createBatchDto: CreateBatchAppointmentDto) {
+        return this.appointmentsService.createBatch(createBatchDto);
     }
 
     @Get()

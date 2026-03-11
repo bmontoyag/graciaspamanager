@@ -17,8 +17,23 @@ export default function ClientDialog({ isOpen, onClose, onSave, client }: Client
         name: '',
         phone: '',
         email: '',
-        birthday: ''
+        birthday: '',
+        discoverySource: ''
     });
+
+    const [discoverySources, setDiscoverySources] = useState<string[]>([]);
+
+    useEffect(() => {
+        // Load discovery sources
+        fetch(`${API_URL}/configuration`)
+            .then(res => res.json())
+            .then(config => {
+                if (config.discoverySources) {
+                    setDiscoverySources(config.discoverySources);
+                }
+            })
+            .catch(console.error);
+    }, [API_URL]);
 
     useEffect(() => {
         if (isOpen) {
@@ -27,7 +42,8 @@ export default function ClientDialog({ isOpen, onClose, onSave, client }: Client
                     name: client.name || '',
                     phone: client.phone || '',
                     email: client.email || '',
-                    birthday: client.birthday ? new Date(client.birthday).toISOString().split('T')[0] : ''
+                    birthday: client.birthday ? new Date(client.birthday).toISOString().split('T')[0] : '',
+                    discoverySource: client.discoverySource || ''
                 });
             } else {
                 setActiveTab('profile'); // Always start new clients on profile tab
@@ -35,7 +51,8 @@ export default function ClientDialog({ isOpen, onClose, onSave, client }: Client
                     name: '',
                     phone: '',
                     email: '',
-                    birthday: ''
+                    birthday: '',
+                    discoverySource: ''
                 });
             }
         }
@@ -53,7 +70,8 @@ export default function ClientDialog({ isOpen, onClose, onSave, client }: Client
                 name: formData.name,
                 phone: formData.phone || undefined,
                 email: formData.email || undefined,
-                birthday: formData.birthday ? new Date(formData.birthday).toISOString() : undefined
+                birthday: formData.birthday ? new Date(formData.birthday).toISOString() : undefined,
+                discoverySource: formData.discoverySource || undefined
             };
 
             const url = client
@@ -161,6 +179,20 @@ export default function ClientDialog({ isOpen, onClose, onSave, client }: Client
                                     value={formData.birthday}
                                     onChange={handleChange}
                                 />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">¿De dónde nos conoció?</label>
+                                <select
+                                    name="discoverySource"
+                                    className="w-full p-2 rounded-md border bg-background"
+                                    value={formData.discoverySource}
+                                    onChange={handleChange as any}
+                                >
+                                    <option value="">Seleccionar (Opcional)</option>
+                                    {discoverySources.map((source, idx) => (
+                                        <option key={idx} value={source}>{source}</option>
+                                    ))}
+                                </select>
                             </div>
                         </div>
 

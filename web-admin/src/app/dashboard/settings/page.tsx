@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Save, Image, Palette, Wand2, MessageCircle } from 'lucide-react';
+import { Save, Image, Palette, Wand2, MessageCircle, Plus, X } from 'lucide-react';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -26,9 +26,7 @@ export default function SettingsPage() {
     const [logoUrl, setLogoUrl] = useState<string>('');
     const [loginBgUrl, setLoginBgUrl] = useState<string>('');
 
-    // Textos
-    const [birthdayMessage, setBirthdayMessage] = useState<string>('¡Hola {name}! 🎉 De parte de todo el equipo de Gracia Spa queremos desearte un muy feliz cumpleaños. 🎂 Tenemos una promoción especial para ti por tu día, ¡escríbenos para agendarla! 💆‍♀️✨');
-
+    // Themes
     const [mounted, setMounted] = useState(false);
     const [hasChanges, setHasChanges] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -48,7 +46,6 @@ export default function SettingsPage() {
                 if (config.backgroundColor) setBackgroundColor(config.backgroundColor);
                 if (config.logoUrl) setLogoUrl(config.logoUrl);
                 if (config.loginBgUrl) setLoginBgUrl(config.loginBgUrl);
-                if (config.birthdayMessage) setBirthdayMessage(config.birthdayMessage);
             }
         } catch (error) {
             console.error('Failed to load configuration:', error);
@@ -94,7 +91,6 @@ export default function SettingsPage() {
                 backgroundColor,
                 logoUrl: logoUrl || undefined,
                 loginBgUrl: loginBgUrl || undefined,
-                birthdayMessage,
             };
 
             const token = localStorage.getItem('accessToken');
@@ -253,30 +249,8 @@ export default function SettingsPage() {
                         </div>
                     </div>
                 </div>
-
-                {/* Textos y Notificaciones */}
-                <div className="bg-card border rounded-lg p-6">
-                    <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-                        <MessageCircle className="h-5 w-5 text-primary" />
-                        Mensajes y Textos
-                    </h2>
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium mb-2">Mensaje de Cumpleaños (Whatsapp)</label>
-                            <textarea
-                                value={birthdayMessage}
-                                onChange={(e) => { setBirthdayMessage(e.target.value); handleChange(); }}
-                                className="w-full h-24 p-2 text-sm border rounded-md bg-background resize-none focus:ring-1 focus:ring-primary focus:border-primary"
-                                placeholder="Escribe el mensaje de cumpleaños..."
-                            />
-                            <p className="text-xs text-muted-foreground mt-1">
-                                Usa <span className="font-mono bg-muted px-1 rounded text-primary">{'{name}'}</span> para que se reemplace automáticamente con el nombre del cliente.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
             </div>
         </PageContainer>
     );
 }
+

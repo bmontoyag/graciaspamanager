@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
 import { AttentionsService } from './attentions.service';
 import { CreateAttentionDto } from './dto/create-attention.dto';
+import { CreateBatchAttentionDto } from './dto/create-batch.dto';
 import { UpdateAttentionDto } from './dto/update-attention.dto';
 
 @Controller('attentions')
@@ -10,6 +11,11 @@ export class AttentionsController {
   @Post()
   create(@Body() createAttentionDto: CreateAttentionDto) {
     return this.attentionsService.create(createAttentionDto);
+  }
+
+  @Post('batch')
+  createBatch(@Body() createBatchAttentionDto: CreateBatchAttentionDto) {
+    return this.attentionsService.createBatch(createBatchAttentionDto);
   }
 
   @Get()

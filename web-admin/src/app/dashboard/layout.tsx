@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { LayoutDashboard, Users, Calendar, Settings, LogOut, Menu, X, FileText, Package, DollarSign, ClipboardList, BarChart3, Clock, Database, ChevronDown, ChevronRight, UserCircle, Key, UserPlus, Gift, Home, Palette, User, History } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, Settings, LogOut, Menu, X, FileText, Package, DollarSign, ClipboardList, BarChart3, Clock, Database, ChevronDown, ChevronRight, UserCircle, Key, UserPlus, Gift, Home, Palette, User, History, MessageCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AutoLogout } from '@/components/layout/AutoLogout';
@@ -256,12 +256,20 @@ export default function DashboardLayout({
                         )}
 
                         {hasPermission('settings') && (
-                            <li>
-                                <Link href="/dashboard/settings" onClick={closeSidebar} className="flex items-center rounded-md p-2 hover:bg-white/10 transition-colors">
-                                    <Palette className="mr-3 h-5 w-5" />
-                                    Temas y Branding
-                                </Link>
-                            </li>
+                            <>
+                                <li>
+                                    <Link href="/dashboard/settings" onClick={closeSidebar} className="flex items-center rounded-md p-2 hover:bg-white/10 transition-colors">
+                                        <Palette className="mr-3 h-5 w-5" />
+                                        Temas y Branding
+                                    </Link>
+                                </li>
+                                <li>
+                                    <Link href="/dashboard/messages" onClick={closeSidebar} className="flex items-center rounded-md p-2 hover:bg-white/10 transition-colors">
+                                        <MessageCircle className="mr-3 h-5 w-5" />
+                                        Config. Mensajes
+                                    </Link>
+                                </li>
+                            </>
                         )}
 
                         {hasPermission('roles') && (

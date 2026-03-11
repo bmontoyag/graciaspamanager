@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Database, Download, Mail, Clock, CheckCircle } from 'lucide-react';
+import { Database, Download, Mail, Clock, CheckCircle, Upload, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function BackupPage() {
@@ -41,7 +41,7 @@ export default function BackupPage() {
         try {
             setLoading(true);
             const token = localStorage.getItem('accessToken');
-            const response = await fetch(`${API_URL}/backup/download`, {
+            const response = await fetch(`${API_URL}ue/backup/download`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -90,6 +90,39 @@ export default function BackupPage() {
         }
     };
 
+    const handleRestore = async (file: File) => {
+        try {
+            setLoading(true);
+            const token = localStorage.getItem('accessToken');
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const res = await fetch(`${API_URL}/backup/restore`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                body: formData
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.message || 'Restauración fallida');
+            }
+
+            toast.success('Base de datos restaurada correctamente');
+            // Recordar al usuario que los datos han cambiado
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } catch (error: any) {
+            console.error(error);
+            toast.error(error.message || 'Error al restaurar la base de datos');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <PageContainer>
             <h1 className="text-3xl font-serif font-bold mb-8">Backup y Restauración</h1>
@@ -108,6 +141,45 @@ export default function BackupPage() {
                         <Download className="mr-2 h-4 w-4" />
                         {loading ? 'Procesando...' : 'Descargar Backup Global'}
                     </Button>
+                </div>
+
+                {/* Restore Backup */}
+                <div className="bg-card border rounded-lg p-6 border-destructive/20 bg-destructive/5">
+                    <div className="flex items-center gap-3 mb-4">
+                        <Upload className="h-6 w-6 text-destructive" />
+                        <h2 className="text-xl font-bold">Restaurar Copia de Seguridad</h2>
+                    </div>
+                    <p className="text-muted-foreground mb-6">
+                        <span className="font-bold text-destructive">ADVERTENCIA:</span> Al restaurar un backup, se <span className="font-bold">sobrescribirán permanentemente</span> todos los datos actuales. Esta acción no se puede deshacer.
+                    </p>
+
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                        <Input
+                            type="file"
+                            accept=".sql"
+                            className="bg-background"
+                            id="restore-file"
+                            disabled={loading}
+                        />
+                        <Button
+                            variant="destructive"
+                            disabled={loading}
+                            className="w-full sm:w-auto"
+                            onClick={() => {
+                                const fileInput = document.getElementById('restore-file') as HTMLInputElement;
+                                if (fileInput.files && fileInput.files[0]) {
+                                    if (window.confirm('¿Estás absolutamente seguro? Esta acción reemplazará todos los datos actuales y no se puede deshacer.')) {
+                                        handleRestore(fileInput.files[0]);
+                                    }
+                                } else {
+                                    toast.error('Por favor, selecciona un archivo primero');
+                                }
+                            }}
+                        >
+                            <Upload className="mr-2 h-4 w-4" />
+                            {loading ? 'Restaurando...' : 'Restaurar Base de Datos'}
+                        </Button>
+                    </div>
                 </div>
 
                 {/* Scheduled Backup */}

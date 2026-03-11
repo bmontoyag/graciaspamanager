@@ -1,8 +1,10 @@
 import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
+import { CreateBatchAppointmentDto } from './dto/create-batch-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConfigurationService } from '../configuration/configuration.service';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class AppointmentsService {
@@ -14,12 +16,10 @@ export class AppointmentsService {
     async create(createAppointmentDto: CreateAppointmentDto) {
         const { date, duration, ...rest } = createAppointmentDto;
         const appointmentDate = new Date(date);
-
-        // Calculate end time based on duration (default 60 min if not provided)
         const appointmentDuration = duration || 60;
         const appointmentEndDate = new Date(appointmentDate.getTime() + appointmentDuration * 60000);
 
-        await this.validateAppointment(appointmentDate, appointmentEndDate);
+        await this.validateAppointment(appointmentDate, appointmentEndDate, undefined, createAppointmentDto.workerId);
 
         const appointment = await this.prisma.appointment.create({
             data: {
@@ -29,10 +29,59 @@ export class AppointmentsService {
             },
         });
 
-        // Crear tareas de notificacion automatica (15min antes y 15min despues)
         await this.scheduleAppointmentNotifications(appointment.id, appointmentDate, appointmentDuration, createAppointmentDto.workerId);
 
         return appointment;
+    }
+
+    async createBatch(createBatchDto: CreateBatchAppointmentDto) {
+        const { date, clientId, status, notes, services } = createBatchDto;
+        const initialDate = new Date(date);
+        let currentStartTime = new Date(initialDate);
+
+        return this.prisma.$transaction(async (tx) => {
+            const createdAppointments: any[] = [];
+
+            for (const serviceItem of services) {
+                const duration = serviceItem.duration || 60;
+                const currentEndTime = new Date(currentStartTime.getTime() + duration * 60000);
+                
+                // Validate availability for THIS worker in THIS segment
+                await this.validateAppointment(
+                    currentStartTime,
+                    currentEndTime,
+                    undefined,
+                    serviceItem.workerId,
+                    tx
+                );
+
+                const appointment = await tx.appointment.create({
+                    data: {
+                        date: new Date(currentStartTime),
+                        status: status || 'PENDING',
+                        notes: notes,
+                        clientId: clientId,
+                        serviceId: serviceItem.serviceId,
+                        workerId: serviceItem.workerId,
+                        cost: serviceItem.cost || 0,
+                        duration: duration,
+                    },
+                    include: {
+                        client: true,
+                        service: true,
+                        worker: true,
+                    }
+                });
+
+                await this.scheduleAppointmentNotifications(appointment.id, currentStartTime, duration, serviceItem.workerId, tx);
+                createdAppointments.push(appointment);
+
+                // Advance time for the next service in the batch
+                currentStartTime = new Date(currentEndTime.getTime());
+            }
+
+            return createdAppointments;
+        });
     }
 
     findAll() {
@@ -65,24 +114,23 @@ export class AppointmentsService {
 
     async update(id: number, updateAppointmentDto: UpdateAppointmentDto) {
         const { date, duration, ...rest } = updateAppointmentDto;
-
         const existingAppointment = await this.findOne(id);
 
         let appointmentDate = existingAppointment.date;
         let appointmentDuration = existingAppointment.duration;
 
-        if (date) {
-            appointmentDate = new Date(date);
-        }
-        if (duration) {
-            appointmentDuration = duration;
-        }
+        if (date) appointmentDate = new Date(date);
+        if (duration) appointmentDuration = duration;
 
         const appointmentEndDate = new Date(appointmentDate.getTime() + appointmentDuration * 60000);
 
-        // Validate only if date or duration changed
-        if (date || duration) {
-            await this.validateAppointment(appointmentDate, appointmentEndDate, id);
+        if (date || duration || updateAppointmentDto.workerId) {
+            await this.validateAppointment(
+                appointmentDate, 
+                appointmentEndDate, 
+                id, 
+                updateAppointmentDto.workerId || existingAppointment.workerId
+            );
         }
 
         const appointment = await this.prisma.appointment.update({
@@ -94,8 +142,7 @@ export class AppointmentsService {
             },
         });
 
-        // Re-agendar notificaciones si la fecha o duración cambió
-        if (date || duration) {
+        if (date || duration || updateAppointmentDto.workerId) {
             await this.scheduleAppointmentNotifications(appointment.id, appointmentDate, appointmentDuration, appointment.workerId);
         }
 
@@ -108,40 +155,27 @@ export class AppointmentsService {
         });
     }
 
-    private async validateAppointment(startDate: Date, endDate: Date, excludeId?: number) {
-        const config = await this.configService.getGlobalConfig();
+    private async validateAppointment(
+        startDate: Date, 
+        endDate: Date, 
+        excludeId?: number, 
+        workerId?: number,
+        tx?: Prisma.TransactionClient
+    ) {
+        const prismaClient = tx || this.prisma;
+        const config = await prismaClient.configuration.findFirst();
         const openTime = config?.openTime || '09:00';
         const closeTime = config?.closeTime || '21:00';
         const bufferMinutes = config?.appointmentBuffer || 10;
 
-        console.log(`Validating Appointment: ${startDate.toISOString()} - ${endDate.toISOString()}`);
-        console.log(`Business Hours: ${openTime} - ${closeTime}`);
-
-        // 1. Check Business Hours
-        // Use America/Lima timezone for validation to ensure consistency regardless of server timezone
+        // 1. Business Hours Validation (Lima Timezone)
         const limaTimeStr = startDate.toLocaleTimeString("en-US", { timeZone: "America/Lima", hour12: false, hour: '2-digit', minute: '2-digit' });
         const limaEndTimeStr = endDate.toLocaleTimeString("en-US", { timeZone: "America/Lima", hour12: false, hour: '2-digit', minute: '2-digit' });
 
-        console.log(`Validating Time (Lima): ${limaTimeStr} - ${limaEndTimeStr} vs ${openTime}-${closeTime}`);
-
-        // Simple string comparison works for "HH:mm" in 24h format
-        if (limaTimeStr < openTime || limaTimeStr > closeTime) {
+        if (limaTimeStr < openTime || limaEndTimeStr > closeTime) {
             throw new BadRequestException(`La cita debe estar dentro del horario de atención (${openTime} - ${closeTime}).`);
         }
 
-        // Check if ends after close time
-        const [startH, startM] = limaTimeStr.split(':').map(Number);
-        const [closeH, closeM] = closeTime.split(':').map(Number);
-
-        const startMinutesVal = startH * 60 + startM;
-        const closeMinutesVal = closeH * 60 + closeM;
-        const durationMinutes = (endDate.getTime() - startDate.getTime()) / 60000;
-
-        if (startMinutesVal + durationMinutes > closeMinutesVal) {
-            throw new BadRequestException(`La cita termina fuera del horario de atención (${closeTime}).`);
-        }
-
-        // Check if spans across days (in Lima time context)
         const limaDateString = startDate.toLocaleString("en-US", { timeZone: "America/Lima", day: 'numeric' });
         const limaEndDateString = endDate.toLocaleString("en-US", { timeZone: "America/Lima", day: 'numeric' });
 
@@ -149,79 +183,64 @@ export class AppointmentsService {
             throw new BadRequestException(`La cita no puede terminar al día siguiente.`);
         }
 
-        // 2. Check Overlaps & Buffer
-        const bufferMs = bufferMinutes * 60000;
-        const checkStart = new Date(startDate.getTime() - bufferMs);
-        const checkEnd = new Date(endDate.getTime() + bufferMs);
+        // 2. Overlaps & Buffer (Per Worker)
+        if (workerId) {
+            const bufferMs = bufferMinutes * 60000;
+            const checkStart = new Date(startDate.getTime() - bufferMs);
+            const checkEnd = new Date(endDate.getTime() + bufferMs);
 
-        const conflictingAppointment = await this.prisma.appointment.findFirst({
-            where: {
-                id: { not: excludeId },
-                status: { not: 'CANCELLED' },
-                AND: [
-                    { date: { lt: checkEnd } },
-                    { date: { gte: new Date(checkStart.getTime() - 4 * 60 * 60000), lte: checkEnd } }
-                ]
-            }
-        });
+            const dayStart = new Date(startDate);
+            dayStart.setHours(0, 0, 0, 0);
+            const dayEnd = new Date(startDate);
+            dayEnd.setHours(23, 59, 59, 999);
 
-        if (conflictingAppointment) {
-            // Detailed check
-            const candidates = await this.prisma.appointment.findMany({
+            const dayAppointments = await prismaClient.appointment.findMany({
                 where: {
-                    id: { not: excludeId },
-                    status: { not: 'CANCELLED' },
+                    workerId: workerId,
                     date: {
-                        gte: new Date(checkStart.getTime() - 24 * 60 * 60000),
-                        lte: new Date(checkEnd.getTime() + 24 * 60 * 60000)
-                    }
+                        gte: dayStart,
+                        lte: dayEnd,
+                    },
+                    status: {
+                        in: ['PENDING', 'CONFIRMED', 'COMPLETED']
+                    },
+                    id: excludeId ? { not: excludeId } : undefined,
                 }
             });
 
-            for (const appt of candidates) {
-                const apptStart = new Date(appt.date);
-                const apptEnd = new Date(apptStart.getTime() + appt.duration * 60000);
+            for (const app of dayAppointments) {
+                const appStart = new Date(app.date);
+                const appEnd = new Date(appStart.getTime() + app.duration * 60000);
 
-                const isSafeBefore = apptEnd.getTime() + bufferMs <= startDate.getTime();
-                const isSafeAfter = apptStart.getTime() >= endDate.getTime() + bufferMs;
-
-                if (!isSafeBefore && !isSafeAfter) {
-                    throw new ConflictException(`Conflicto de horario. Debe haber un margen de ${bufferMinutes} min entre citas.`);
+                // Overlap check including buffer
+                if (startDate < new Date(appEnd.getTime() + bufferMs) && endDate > new Date(appStart.getTime() - bufferMs)) {
+                    throw new BadRequestException(`El terapeuta ya tiene una cita ocupada (incluyendo margen de ${bufferMinutes} min) entre ${appStart.toLocaleTimeString()} y ${appEnd.toLocaleTimeString()}`);
                 }
             }
         }
 
-        // 3. Check Blocked Slots
+        // 3. Blocked Slots
         const startOfDay = new Date(startDate);
         startOfDay.setHours(0, 0, 0, 0);
         const endOfDay = new Date(startDate);
         endOfDay.setHours(23, 59, 59, 999);
 
-        const blockedSlots = await this.prisma.blockedSlot.findMany({
+        const blockedSlots = await prismaClient.blockedSlot.findMany({
             where: {
-                date: {
-                    gte: startOfDay,
-                    lte: endOfDay
-                }
+                date: { gte: startOfDay, lte: endOfDay }
             }
         });
+
+        const [startH, startM] = limaTimeStr.split(':').map(Number);
+        const appStartVal = startH * 60 + startM;
+        const durationMinutes = (endDate.getTime() - startDate.getTime()) / 60000;
+        const appEndVal = appStartVal + durationMinutes;
 
         for (const slot of blockedSlots) {
             const [bStartH, bStartM] = slot.startTime.split(':').map(Number);
             const [bEndH, bEndM] = slot.endTime.split(':').map(Number);
-
             const slotStartVal = bStartH * 60 + bStartM;
             const slotEndVal = bEndH * 60 + bEndM;
-
-            // Check if appointment time overlaps with slot time
-            // Re-use calculated appointment values (in Lima time context for consistency? 
-            // OR use UTC if blocked slots are UTC? 
-            // Blocked slots are likely just "10:00" string. 
-            // So we should compare against appointment "10:00" Lima time string details.
-
-            // We already have startH, startM for the appointment in Lima time.
-            const appStartVal = startH * 60 + startM;
-            const appEndVal = appStartVal + durationMinutes;
 
             if (Math.max(slotStartVal, appStartVal) < Math.min(slotEndVal, appEndVal)) {
                 throw new ConflictException(`Conflicto con horario bloqueado: ${slot.startTime} - ${slot.endTime} (${slot.reason || 'Bloqueado'})`);
@@ -229,16 +248,23 @@ export class AppointmentsService {
         }
     }
 
-    private async scheduleAppointmentNotifications(appointmentId: number, startDate: Date, durationMinutes: number, workerId: number) {
-        // Borrar cualquier notificacion pendiente anterior para esta cita
-        await this.prisma.notificationTask.deleteMany({
+    private async scheduleAppointmentNotifications(
+        appointmentId: number, 
+        startDate: Date, 
+        durationMinutes: number, 
+        workerId: number,
+        tx?: Prisma.TransactionClient
+    ) {
+        const prismaClient = tx || this.prisma;
+        
+        await prismaClient.notificationTask.deleteMany({
             where: { relatedAppointmentId: appointmentId }
         });
 
-        const preAppointmentTime = new Date(startDate.getTime() - 15 * 60000); // 15 mins a. m.
-        const postAppointmentTime = new Date(startDate.getTime() + durationMinutes * 60000 + 15 * 60000); // 15 mins d. m.
+        const preAppointmentTime = new Date(startDate.getTime() - 15 * 60000);
+        const postAppointmentTime = new Date(startDate.getTime() + durationMinutes * 60000 + 15 * 60000);
 
-        await this.prisma.notificationTask.createMany({
+        await prismaClient.notificationTask.createMany({
             data: [
                 {
                     type: 'UPCOMING_APPOINTMENT',

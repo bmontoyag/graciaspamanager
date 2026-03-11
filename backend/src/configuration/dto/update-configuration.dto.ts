@@ -29,4 +29,11 @@ export class UpdateConfigurationDto {
     @IsOptional() @IsInt() reminderMinutesBefore?: number;       // Minutos antes del recordatorio
     @IsOptional() @IsString() dailySummaryTime?: string;            // Hora del resumen diario (HH:mm)
     @IsOptional() @IsString() birthdayMessage?: string;
+
+    // Marketing & Communications
+    @IsOptional() @IsString() whatsappMessageTemplate?: string;
+    
+    @IsOptional()
+    @IsString({ each: true })
+    discoverySources?: string[];
 }

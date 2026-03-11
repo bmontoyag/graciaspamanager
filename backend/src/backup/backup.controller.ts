@@ -1,4 +1,5 @@
-import { Controller, Get, Res } from '@nestjs/common';
+import { Controller, Get, Post, Res, UploadedFile, UseInterceptors, BadRequestException } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { BackupService } from './backup.service';
 import type { Response } from 'express';
 
@@ -6,8 +7,18 @@ import type { Response } from 'express';
 export class BackupController {
   constructor(private readonly backupService: BackupService) { }
 
-  @Get()
+  @Get('download')
   download(@Res() res: Response) {
     return this.backupService.downloadBackup(res);
+  }
+
+  @Post('restore')
+  @UseInterceptors(FileInterceptor('file'))
+  async restore(@UploadedFile() file: any) {
+    if (!file) {
+      throw new BadRequestException('No se ha proporcionado ningún archivo');
+    }
+    await this.backupService.restoreBackup(file.buffer);
+    return { message: 'Base de datos restaurada correctamente' };
   }
 }

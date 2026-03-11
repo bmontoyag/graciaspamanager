@@ -11,7 +11,7 @@ interface AttentionDialogProps {
     attention?: any;
 }
 
-const EMPTY_CLIENT = { name: '', phone: '', email: '', birthday: '' };
+const EMPTY_CLIENT = { name: '', phone: '', email: '', birthday: '', discoverySource: '' };
 const EMPTY_SERVICE = { name: '', price: '', durationMin: '60' };
 
 const getLocalToday = () => {
@@ -37,13 +37,20 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
     const [creatingService, setCreatingService] = useState(false);
     const [clientSearch, setClientSearch] = useState('');
     const [serviceSearch, setServiceSearch] = useState('');
+    const [discoverySources, setDiscoverySources] = useState<string[]>([]);
 
     const [formData, setFormData] = useState({
-        clientId: '', serviceId: '', workerIds: [] as string[],
-        totalCost: '', notes: '',
+        clientId: '',
+        services: [] as { serviceId: string, workerIds: string[], totalCost: string }[],
+        notes: '',
         date: getLocalToday(),
         appointmentId: ''
     });
+
+    // Temporal state for adding a new service to the list
+    const [currentServiceId, setCurrentServiceId] = useState('');
+    const [currentWorkerIds, setCurrentWorkerIds] = useState<string[]>([]);
+    const [currentTotalCost, setCurrentTotalCost] = useState('');
 
     const filteredClients = clients.filter(c =>
         c.name.toLowerCase().includes(clientSearch.toLowerCase()) || c.phone?.includes(clientSearch)
@@ -68,6 +75,11 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
     useEffect(() => {
         if (!isOpen) return;
         loadAll().catch(console.error);
+
+        fetch(`${API_URL}/configuration`).then(r => r.json()).then(conf => {
+            if (conf.discoverySources) setDiscoverySources(conf.discoverySources);
+        }).catch(console.error);
+
         setShowNewClient(false); setShowNewService(false);
         setClientSearch(''); setServiceSearch('');
         setNewClient({ ...EMPTY_CLIENT }); setNewService({ ...EMPTY_SERVICE });
@@ -75,33 +87,71 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
         if (attention) {
             setFormData({
                 clientId: attention.clientId?.toString() || '',
-                serviceId: attention.serviceId?.toString() || '',
-                workerIds: attention.workers?.map((w: any) => w.workerId.toString()) || [],
-                totalCost: attention.totalCost?.toString() || '',
+                services: [{
+                    serviceId: attention.serviceId?.toString() || '',
+                    workerIds: attention.workers?.map((w: any) => w.workerId.toString()) || [],
+                    totalCost: attention.totalCost?.toString() || ''
+                }],
                 notes: attention.notes || '',
                 date: attention.date ? new Date(attention.date).toISOString().split('T')[0] : getLocalToday(),
                 appointmentId: attention.appointmentId?.toString() || ''
             });
         } else {
-            setFormData({ clientId: '', serviceId: '', workerIds: [], totalCost: '', notes: '', date: getLocalToday(), appointmentId: '' });
+            setFormData({ clientId: '', services: [], notes: '', date: getLocalToday(), appointmentId: '' });
+            setCurrentServiceId('');
+            setCurrentWorkerIds([]);
+            setCurrentTotalCost('');
         }
     }, [isOpen, attention]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
-        if (name === 'serviceId') {
-            const svc = services.find(s => String(s.id) === value);
-            setFormData(p => ({ ...p, serviceId: value, totalCost: svc ? String(svc.price) : p.totalCost }));
-        } else {
-            setFormData(p => ({ ...p, [name]: value }));
-        }
+        setFormData(p => ({ ...p, [name]: value }));
     };
 
-    const toggleWorker = (id: string) =>
-        setFormData(p => ({
-            ...p,
-            workerIds: p.workerIds.includes(id) ? p.workerIds.filter(w => w !== id) : [...p.workerIds, id]
+    const handleCurrentServiceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const value = e.target.value;
+        const svc = services.find(s => String(s.id) === value);
+        setCurrentServiceId(value);
+        setCurrentTotalCost(svc ? String(svc.price) : currentTotalCost);
+    };
+
+    const toggleCurrentWorker = (id: string) =>
+        setCurrentWorkerIds(prev => prev.includes(id) ? prev.filter(w => w !== id) : [...prev, id]);
+
+    const handleAddService = () => {
+        if (!currentServiceId || !currentTotalCost) {
+            toast.error('Debe seleccionar un servicio y establecer su costo');
+            return;
+        }
+        if (currentWorkerIds.length === 0) {
+            toast.error('Debe asignar al menos un terapeuta por servicio');
+            return;
+        }
+        
+        setFormData(prev => ({
+            ...prev,
+            services: [...prev.services, {
+                serviceId: currentServiceId,
+                workerIds: currentWorkerIds,
+                totalCost: currentTotalCost
+            }]
         }));
+
+        setCurrentServiceId('');
+        setCurrentWorkerIds([]);
+        setCurrentTotalCost('');
+    };
+
+    const handleRemoveService = (index: number) => {
+        setFormData(prev => {
+            const newServices = [...prev.services];
+            newServices.splice(index, 1);
+            return { ...prev, services: newServices };
+        });
+    };
+
+
 
     /* ── Inline client ── */
     const handleCreateClient = async () => {
@@ -114,7 +164,8 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
                     name: newClient.name.trim(),
                     phone: newClient.phone || undefined,
                     email: newClient.email || undefined,
-                    birthday: newClient.birthday ? new Date(newClient.birthday).toISOString() : undefined
+                    birthday: newClient.birthday ? new Date(newClient.birthday).toISOString() : undefined,
+                    discoverySource: newClient.discoverySource || undefined
                 })
             });
             if (!res.ok) throw new Error((await res.json()).message || 'Error');
@@ -139,7 +190,8 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
             if (!res.ok) throw new Error((await res.json()).message || 'Error');
             const created = await res.json();
             setServices(p => [...p, created]);
-            setFormData(p => ({ ...p, serviceId: String(created.id), totalCost: String(created.price) }));
+            setCurrentServiceId(String(created.id));
+            setCurrentTotalCost(String(created.price));
             setShowNewService(false); setNewService({ ...EMPTY_SERVICE }); setServiceSearch('');
             toast.success(`Servicio "${created.name}" creado y seleccionado`);
         } catch (e: any) { toast.error(e.message || 'Error'); }
@@ -149,24 +201,46 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
     /* ── Submit ── */
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        try {
-            const payload: any = {
-                clientId: Number(formData.clientId),
-                serviceId: Number(formData.serviceId),
-                workerIds: formData.workerIds.map(Number),
-                totalCost: Number(formData.totalCost),
-                notes: formData.notes,
-                // Forzamos que la fecha guardada sea siempre el mediodía UTC de la fecha elegida
-                // Esto previene que si estás a -5 o +5 horas, la fecha retroceda o adelante un día en la BD
-                date: new Date(formData.date + 'T12:00:00.000Z').toISOString()
-            };
-            if (formData.appointmentId) payload.appointmentId = Number(formData.appointmentId);
+        
+        if (formData.services.length === 0) {
+            toast.error('Debe agregar al menos un servicio a la atención');
+            return;
+        }
 
-            const url = attention ? `${API_URL}/attentions/${attention.id}` : `${API_URL}/attentions`;
+        try {
+            const basePayload = {
+                clientId: Number(formData.clientId),
+                notes: formData.notes,
+                date: new Date(formData.date + 'T12:00:00.000Z').toISOString(),
+                ...(formData.appointmentId ? { appointmentId: Number(formData.appointmentId) } : {})
+            };
+
+            const url = attention ? `${API_URL}/attentions/${attention.id}` : `${API_URL}/attentions/batch`;
+            
+            let finalPayload;
+            if (attention) {
+                // Cuando editamos, solo mandamos el primer servicio (por ahora no soporta editar bach)
+                finalPayload = {
+                    ...basePayload,
+                    serviceId: Number(formData.services[0].serviceId),
+                    workerIds: formData.services[0].workerIds.map(Number),
+                    totalCost: Number(formData.services[0].totalCost)
+                };
+            } else {
+                finalPayload = {
+                    ...basePayload,
+                    services: formData.services.map(s => ({
+                        serviceId: Number(s.serviceId),
+                        workerIds: s.workerIds.map(Number),
+                        totalCost: Number(s.totalCost)
+                    }))
+                };
+            }
+
             const res = await fetch(url, {
                 method: attention ? 'PATCH' : 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(finalPayload)
             });
             if (!res.ok) {
                 const err = await res.json().catch(() => ({ message: res.statusText }));
@@ -180,8 +254,8 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
     if (!isOpen) return null;
 
     const selectedClient = clients.find(c => String(c.id) === formData.clientId);
-    const selectedService = services.find(s => String(s.id) === formData.serviceId);
     const filteredApts = appointments.filter(a => a.clientId === Number(formData.clientId) && a.status !== 'CANCELLED');
+    const displayTotalCost = formData.services.reduce((sum, s) => sum + (Number(s.totalCost) || 0), 0);
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -217,6 +291,11 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
                                         className="p-2 text-sm border rounded-md bg-background" />
                                     <input type="date" title="Fecha de Nacimiento" value={newClient.birthday} onChange={e => setNewClient(p => ({ ...p, birthday: e.target.value }))}
                                         className="col-span-2 p-2 text-sm border rounded-md bg-background text-muted-foreground" />
+                                    <select title="¿De dónde nos conoció?" value={newClient.discoverySource} onChange={e => setNewClient(p => ({ ...p, discoverySource: e.target.value }))}
+                                        className="col-span-2 p-2 text-sm border rounded-md bg-background text-muted-foreground">
+                                        <option value="">¿De dónde nos conoció? (Opcional)</option>
+                                        {discoverySources.map((s, i) => <option key={i} value={s}>{s}</option>)}
+                                    </select>
                                 </div>
                                 <button type="button" onClick={handleCreateClient} disabled={creatingClient || !newClient.name.trim()}
                                     className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-primary text-primary-foreground rounded-md hover:opacity-90 disabled:opacity-50">
@@ -239,18 +318,56 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
                     </div>
 
                     {/* ══ SERVICIO ══ */}
-                    <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                            <label className="text-sm font-semibold">Servicio *</label>
-                            <button type="button" onClick={() => { setShowNewService(v => !v); setServiceSearch(''); }}
-                                className="flex items-center gap-1 text-xs text-primary hover:underline">
-                                <PlusCircle className="h-3.5 w-3.5" />
-                                {showNewService ? 'Cancelar' : 'Nuevo servicio'}
-                                {showNewService ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                            </button>
-                        </div>
+                            <div className="flex items-center justify-between">
+                                <label className="text-sm font-semibold">Agregar Servicios *</label>
+                                {!attention && (
+                                    <button type="button" onClick={() => { setShowNewService(v => !v); setServiceSearch(''); }}
+                                        className="flex items-center gap-1 text-xs text-primary hover:underline">
+                                        <PlusCircle className="h-3.5 w-3.5" />
+                                        {showNewService ? 'Cancelar' : 'Nuevo servicio'}
+                                        {showNewService ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                                    </button>
+                                )}
+                            </div>
 
-                        {showNewService ? (
+                            {/* Lista de Servicios Agregados */}
+                            {formData.services.length > 0 && (
+                                <div className="space-y-2 mb-4">
+                                    {formData.services.map((item, index) => {
+                                        const svc = services.find(s => String(s.id) === item.serviceId);
+                                        const wrks = workers.filter(w => item.workerIds.includes(String(w.id)));
+                                        return (
+                                            <div key={index} className="flex items-center justify-between p-3 border rounded-lg bg-muted/20">
+                                                <div>
+                                                    <p className="font-medium text-sm">{svc?.name || 'Servicio'}</p>
+                                                    <p className="text-xs text-muted-foreground">Terapistas: {wrks.map(w => w.name).join(', ')}</p>
+                                                </div>
+                                                <div className="flex items-center gap-4">
+                                                    <p className="font-semibold text-primary">S/ {Number(item.totalCost).toFixed(2)}</p>
+                                                    {!attention && (
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={() => handleRemoveService(index)}
+                                                            className="text-destructive hover:bg-destructive/10 p-1.5 rounded-full"
+                                                        >
+                                                            <X className="h-4 w-4" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                    <div className="flex justify-between items-center px-2 pt-2 border-t">
+                                        <p className="font-medium text-sm">Costo Total:</p>
+                                        <p className="font-bold text-lg text-primary">S/ {displayTotalCost.toFixed(2)}</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Formulario para agregar nuevo servicio a la lista (Solo disponible al crear) */}
+                            {!attention && (
+                                <div className="bg-muted/10 p-4 rounded-lg border border-dashed space-y-4">
+                                    {showNewService ? (
                             <div className="p-3 border border-dashed border-emerald-500/50 rounded-lg bg-emerald-500/5 space-y-2">
                                 <p className="text-xs font-semibold text-emerald-600">Crear nuevo servicio</p>
                                 <div className="grid grid-cols-3 gap-2">
@@ -268,18 +385,42 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
                                 </button>
                             </div>
                         ) : (
-                            <div className="space-y-1">
-                                <input type="text" placeholder="Buscar servicio..." value={serviceSearch} onChange={e => setServiceSearch(e.target.value)}
-                                    className="w-full p-2 text-sm border rounded-md bg-background" />
-                                <select name="serviceId" value={formData.serviceId} onChange={handleChange}
-                                    className="w-full p-2 border rounded-md bg-background" required>
-                                    <option value="">Seleccionar servicio ({filteredServices.length})</option>
-                                    {filteredServices.map(s => <option key={s.id} value={s.id}>{s.name} — S/ {s.price}</option>)}
-                                </select>
-                                {selectedService && <p className="text-xs text-muted-foreground">✓ {selectedService.name} — S/ {selectedService.price} · {selectedService.durationMin} min</p>}
+                            <div className="space-y-4">
+                                <div>
+                                    <input type="text" placeholder="Buscar servicio..." value={serviceSearch} onChange={e => setServiceSearch(e.target.value)}
+                                        className="w-full p-2 mb-2 text-sm border rounded-md bg-background" />
+                                    <select name="serviceId" value={currentServiceId} onChange={handleCurrentServiceChange}
+                                        className="w-full p-2 border rounded-md bg-background">
+                                        <option value="">Seleccionar servicio ({filteredServices.length})</option>
+                                        {filteredServices.map(s => <option key={s.id} value={s.id}>{s.name} — S/ {s.price}</option>)}
+                                    </select>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-semibold mb-1">Costo (S/)</label>
+                                        <input type="number" name="totalCost" value={currentTotalCost} onChange={e => setCurrentTotalCost(e.target.value)}
+                                            className="w-full p-2 text-sm border rounded-md bg-background" step="0.01" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold mb-1">Personal Asignado *</label>
+                                        <div className="grid grid-cols-1 gap-1 border p-2 rounded-md max-h-32 overflow-y-auto bg-background">
+                                            {workers.map(w => (
+                                                <label key={w.id} className="flex items-center gap-2 cursor-pointer p-0.5 hover:bg-muted/50 rounded">
+                                                    <input type="checkbox" checked={currentWorkerIds.includes(String(w.id))} onChange={() => toggleCurrentWorker(String(w.id))} className="rounded" />
+                                                    <span className="text-xs">{w.name}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                                <button type="button" onClick={handleAddService} disabled={!currentServiceId || currentWorkerIds.length === 0 || !currentTotalCost}
+                                    className="w-full py-2 text-sm font-semibold border-2 border-primary text-primary hover:bg-primary/10 rounded-md transition-colors disabled:opacity-50">
+                                    + Añadir a la Atención
+                                </button>
                             </div>
                         )}
-                    </div>
+                        </div>
+                    )}
 
                     {/* ══ CITA ASOCIADA ══ */}
                     {formData.clientId && (
@@ -296,31 +437,11 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
                         </div>
                     )}
 
-                    {/* ══ PERSONAL ══ */}
+                    {/* ══ FECHA ══ */}
                     <div>
-                        <label className="block text-sm font-semibold mb-2">Personal Asignado</label>
-                        <div className="grid grid-cols-2 gap-2 border p-3 rounded-md max-h-32 overflow-y-auto">
-                            {workers.map(w => (
-                                <label key={w.id} className="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" checked={formData.workerIds.includes(String(w.id))} onChange={() => toggleWorker(String(w.id))} className="rounded" />
-                                    <span className="text-sm">{w.name}</span>
-                                </label>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* ══ COSTO + FECHA ══ */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-semibold mb-1">Costo Total (S/)</label>
-                            <input type="number" name="totalCost" value={formData.totalCost} onChange={handleChange}
-                                className="w-full p-2 border rounded-md bg-background" step="0.01" required />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-semibold mb-1">Fecha</label>
-                            <input type="date" name="date" value={formData.date} onChange={handleChange}
-                                className="w-full p-2 border rounded-md bg-background" required />
-                        </div>
+                        <label className="block text-sm font-semibold mb-1">Fecha</label>
+                        <input type="date" name="date" value={formData.date} onChange={handleChange}
+                            className="w-full p-2 border rounded-md bg-background" required />
                     </div>
 
                     {/* ══ NOTAS ══ */}
@@ -332,7 +453,7 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
 
                     <div className="flex justify-end gap-2 pt-2">
                         <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-accent rounded-md">Cancelar</button>
-                        <button type="submit" className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:opacity-90">
+                        <button type="submit" disabled={formData.services.length === 0} className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:opacity-90 disabled:opacity-50">
                             {attention ? 'Actualizar' : 'Guardar'} Atención
                         </button>
                     </div>

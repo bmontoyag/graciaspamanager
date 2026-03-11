@@ -126,6 +126,45 @@ export class BackupService {
         dockerProcess.stderr.on('data', (data) => this.logger.debug(`stderr: ${data}`));
     }
 
+    async restoreBackup(buffer: Buffer) {
+        return new Promise<void>((resolve, reject) => {
+            const dbUser = process.env.POSTGRES_USER || 'admin';
+            const dbName = process.env.POSTGRES_DB || 'graciaspa_db';
+            const containerName = 'graciaspa_postgres';
+
+            this.logger.log(`Starting database restore for ${dbName}...`);
+
+            const dockerProcess = spawn('docker', [
+                'exec', '-i', containerName,
+                'psql', '-U', dbUser, '-d', dbName
+            ]);
+
+            dockerProcess.stdin.write(buffer);
+            dockerProcess.stdin.end();
+
+            let errorData = '';
+            dockerProcess.stderr.on('data', (data) => {
+                errorData += data.toString();
+                this.logger.debug(`psql stderr: ${data}`);
+            });
+
+            dockerProcess.on('error', (error) => {
+                this.logger.error(`Error spawning restore process: ${error.message}`);
+                reject(error);
+            });
+
+            dockerProcess.on('close', (code) => {
+                if (code !== 0) {
+                    this.logger.error(`Restore process exited with code ${code}. Errors: ${errorData}`);
+                    reject(new Error(`Restore failed with code ${code}`));
+                } else {
+                    this.logger.log('Database restore completed successfully');
+                    resolve();
+                }
+            });
+        });
+    }
+
     private async sendEmail(to: string, filename: string, content: Buffer) {
         // Configure transporter with env vars
         const transporter = nodemailer.createTransport({

@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { CreateAttentionDto } from './dto/create-attention.dto';
+import { CreateBatchAttentionDto } from './dto/create-batch.dto';
 import { UpdateAttentionDto } from './dto/update-attention.dto';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -66,6 +67,70 @@ export class AttentionsService {
       }
 
       return attention;
+    });
+  }
+
+  async createBatch(createBatchDto: CreateBatchAttentionDto) {
+    const { services, clientId, appointmentId, ...rest } = createBatchDto;
+
+    // Obtener los porcentajes de comision de todos los terapeutas involucrados
+    const allWorkerIds = Array.from(new Set(services.flatMap(s => s.workerIds).map(Number)));
+    const workersInfo = await this.prisma.user.findMany({
+      where: { id: { in: allWorkerIds } }
+    });
+
+    return this.prisma.$transaction(async (tx) => {
+      const attentions: any[] = [];
+
+      for (const serviceData of services) {
+        const workerIds = (serviceData.workerIds || []).map(id => Number(id));
+        const totalCost = Number(serviceData.totalCost) || 0;
+        const workerCounts = workerIds.length > 0 ? workerIds.length : 1;
+        const splitCost = totalCost / workerCounts;
+
+        const attention = await tx.attention.create({
+          data: {
+            clientId,
+            serviceId: serviceData.serviceId,
+            totalCost,
+            appointmentId,
+            ...rest,
+            workers: {
+              create: workerIds.map((workerId, index) => {
+                const worker = workersInfo.find(w => Number(w.id) === Number(workerId));
+                const pStr = worker?.commissionPercentage?.toString() || '50';
+                const percentage = parseFloat(pStr) || 50;
+                const commissionAmount = Number(splitCost) * (percentage / 100);
+
+                return {
+                  workerId: Number(workerId),
+                  isPrimary: index === 0,
+                  commissionAmount: Number(commissionAmount.toFixed(2))
+                };
+              })
+            }
+          },
+        });
+        attentions.push(attention);
+      }
+
+      // Increment loyalty points for the client once
+      if (attentions.length > 0) {
+        await tx.client.update({
+          where: { id: clientId },
+          data: { loyaltyPoints: { increment: 1 } }
+        });
+      }
+
+      // Automatically mark the appointment as completed if linked
+      if (appointmentId) {
+        await tx.appointment.update({
+          where: { id: appointmentId },
+          data: { status: 'COMPLETED' }
+        });
+      }
+
+      return attentions;
     });
   }
 
