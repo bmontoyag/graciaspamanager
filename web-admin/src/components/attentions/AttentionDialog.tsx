@@ -47,6 +47,8 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
         appointmentId: ''
     });
 
+    const [advanceAmount, setAdvanceAmount] = useState(0);
+
     // Temporal state for adding a new service to the list
     const [currentServiceId, setCurrentServiceId] = useState('');
     const [currentWorkerIds, setCurrentWorkerIds] = useState<string[]>([]);
@@ -107,6 +109,35 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFormData(p => ({ ...p, [name]: value }));
+
+        if (name === 'appointmentId') {
+            if (value) {
+                fetch(`${API_URL}/appointments/${value}`)
+                    .then(r => r.json())
+                    .then(apt => {
+                        const totalAdvance = apt.payments
+                            ?.filter((p: any) => p.type === 'ADVANCE')
+                            .reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0;
+                        setAdvanceAmount(totalAdvance);
+
+                        // Precargar el servicio de la cita
+                        if (apt.serviceId && apt.workerId) {
+                            setFormData(prev => ({
+                                ...prev,
+                                services: [{
+                                    serviceId: apt.serviceId.toString(),
+                                    workerIds: [apt.workerId.toString()],
+                                    totalCost: apt.cost?.toString() || '0'
+                                }]
+                            }));
+                        }
+                    })
+                    .catch(console.error);
+            } else {
+                setAdvanceAmount(0);
+                setFormData(prev => ({ ...prev, services: [] }));
+            }
+        }
     };
 
     const handleCurrentServiceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -361,6 +392,19 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
                                         <p className="font-medium text-sm">Costo Total:</p>
                                         <p className="font-bold text-lg text-primary">S/ {displayTotalCost.toFixed(2)}</p>
                                     </div>
+
+                                    {advanceAmount > 0 && (
+                                        <div className="space-y-1 mt-2 pt-2 border-t px-2 border-dashed border-yellow-500/30">
+                                            <div className="flex justify-between items-center text-yellow-600 dark:text-yellow-500 font-medium">
+                                                <p className="text-xs italic">Adelanto registrado:</p>
+                                                <p className="text-sm">- S/ {advanceAmount.toFixed(2)}</p>
+                                            </div>
+                                            <div className="flex justify-between items-center text-primary font-bold">
+                                                <p className="text-sm uppercase">Saldo a cobrar:</p>
+                                                <p className="text-xl">S/ {(displayTotalCost - advanceAmount).toFixed(2)}</p>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 

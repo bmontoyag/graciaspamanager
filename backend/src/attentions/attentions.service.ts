@@ -64,6 +64,18 @@ export class AttentionsService {
           where: { id: rest.appointmentId },
           data: { status: 'COMPLETED' }
         });
+
+        // Vincular adelantos existentes
+        await tx.payment.updateMany({
+          where: {
+            appointmentId: rest.appointmentId,
+            type: 'ADVANCE',
+            attentionId: null // Solo los que no han sido vinculados aún
+          },
+          data: {
+            attentionId: attention.id
+          }
+        });
       }
 
       return attention;
@@ -128,6 +140,20 @@ export class AttentionsService {
           where: { id: appointmentId },
           data: { status: 'COMPLETED' }
         });
+
+        // Vincular adelantos existentes a la primera atención del lote
+        if (attentions.length > 0) {
+          await tx.payment.updateMany({
+            where: {
+              appointmentId: appointmentId,
+              type: 'ADVANCE',
+              attentionId: null
+            },
+            data: {
+              attentionId: attentions[0].id
+            }
+          });
+        }
       }
 
       return attentions;

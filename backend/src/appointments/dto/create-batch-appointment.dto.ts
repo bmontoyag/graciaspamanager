@@ -1,6 +1,6 @@
 import { IsDateString, IsEnum, IsInt, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-import { AppointmentStatus } from '@prisma/client';
+import { AppointmentStatus, PaymentMethod } from '@prisma/client';
 
 class AppointmentServiceItemDto {
     @IsInt()
@@ -36,4 +36,12 @@ export class CreateBatchAppointmentDto {
     @ValidateNested({ each: true })
     @Type(() => AppointmentServiceItemDto)
     services: AppointmentServiceItemDto[];
+
+    @IsOptional()
+    @IsNumber()
+    advanceAmount?: number;
+
+    @IsOptional()
+    @IsEnum(PaymentMethod)
+    paymentMethod?: PaymentMethod;
 }

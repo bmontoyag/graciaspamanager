@@ -14,28 +14,42 @@ export class AppointmentsService {
     ) { }
 
     async create(createAppointmentDto: CreateAppointmentDto) {
-        const { date, duration, ...rest } = createAppointmentDto;
+        const { date, duration, advanceAmount, paymentMethod, ...rest } = createAppointmentDto;
         const appointmentDate = new Date(date);
         const appointmentDuration = duration || 60;
         const appointmentEndDate = new Date(appointmentDate.getTime() + appointmentDuration * 60000);
 
         await this.validateAppointment(appointmentDate, appointmentEndDate, undefined, createAppointmentDto.workerId);
 
-        const appointment = await this.prisma.appointment.create({
-            data: {
-                ...rest,
-                date: appointmentDate,
-                duration: appointmentDuration
-            },
+        return this.prisma.$transaction(async (tx) => {
+            const appointment = await tx.appointment.create({
+                data: {
+                    ...rest,
+                    date: appointmentDate,
+                    duration: appointmentDuration
+                },
+            });
+
+            if (advanceAmount && advanceAmount > 0) {
+                await tx.payment.create({
+                    data: {
+                        amount: advanceAmount,
+                        method: paymentMethod || 'CASH',
+                        type: 'ADVANCE',
+                        appointmentId: appointment.id,
+                        notes: `Adelanto para cita ${appointment.id}`
+                    }
+                });
+            }
+
+            await this.scheduleAppointmentNotifications(appointment.id, appointmentDate, appointmentDuration, createAppointmentDto.workerId, tx);
+
+            return appointment;
         });
-
-        await this.scheduleAppointmentNotifications(appointment.id, appointmentDate, appointmentDuration, createAppointmentDto.workerId);
-
-        return appointment;
     }
 
     async createBatch(createBatchDto: CreateBatchAppointmentDto) {
-        const { date, clientId, status, notes, services } = createBatchDto;
+        const { date, clientId, status, notes, services, advanceAmount, paymentMethod } = createBatchDto;
         const initialDate = new Date(date);
         let currentStartTime = new Date(initialDate);
 
@@ -80,6 +94,19 @@ export class AppointmentsService {
                 currentStartTime = new Date(currentEndTime.getTime());
             }
 
+            // Handle Advance Payment if provided
+            if (advanceAmount && advanceAmount > 0 && createdAppointments.length > 0) {
+                await tx.payment.create({
+                    data: {
+                        amount: advanceAmount,
+                        method: paymentMethod || 'CASH',
+                        type: 'ADVANCE',
+                        appointmentId: createdAppointments[0].id,
+                        notes: `Adelanto para cita ${createdAppointments[0].id}`
+                    }
+                });
+            }
+
             return createdAppointments;
         });
     }
@@ -104,6 +131,7 @@ export class AppointmentsService {
                 client: true,
                 worker: true,
                 service: true,
+                payments: true,
             },
         });
         if (!appointment) {
@@ -113,7 +141,7 @@ export class AppointmentsService {
     }
 
     async update(id: number, updateAppointmentDto: UpdateAppointmentDto) {
-        const { date, duration, ...rest } = updateAppointmentDto;
+        const { date, duration, advanceAmount, paymentMethod, ...rest } = updateAppointmentDto;
         const existingAppointment = await this.findOne(id);
 
         let appointmentDate = existingAppointment.date;
@@ -133,20 +161,58 @@ export class AppointmentsService {
             );
         }
 
-        const appointment = await this.prisma.appointment.update({
-            where: { id },
-            data: {
-                ...rest,
-                ...(date && { date: appointmentDate }),
-                ...(duration && { duration: appointmentDuration }),
-            },
+        return this.prisma.$transaction(async (tx) => {
+            const appointment = await tx.appointment.update({
+                where: { id },
+                data: {
+                    ...rest,
+                    ...(date && { date: appointmentDate }),
+                    ...(duration && { duration: appointmentDuration }),
+                },
+            });
+
+            if (advanceAmount !== undefined) {
+                const existingAdvance = await tx.payment.findFirst({
+                    where: { 
+                        appointmentId: id,
+                        type: 'ADVANCE'
+                    }
+                });
+
+                if (advanceAmount > 0) {
+                    if (existingAdvance) {
+                        await tx.payment.update({
+                            where: { id: existingAdvance.id },
+                            data: {
+                                amount: advanceAmount,
+                                method: paymentMethod || existingAdvance.method
+                            }
+                        });
+                    } else {
+                        await tx.payment.create({
+                            data: {
+                                amount: advanceAmount,
+                                method: paymentMethod || 'CASH',
+                                type: 'ADVANCE',
+                                appointmentId: id,
+                                notes: `Adelanto para cita ${id}`
+                            }
+                        });
+                    }
+                } else if (existingAdvance) {
+                    // Logic for setting amount to 0 or null? Let's assume remove it if 0
+                    await tx.payment.delete({
+                        where: { id: existingAdvance.id }
+                    });
+                }
+            }
+
+            if (date || duration || updateAppointmentDto.workerId) {
+                await this.scheduleAppointmentNotifications(appointment.id, appointmentDate, appointmentDuration, appointment.workerId, tx);
+            }
+
+            return appointment;
         });
-
-        if (date || duration || updateAppointmentDto.workerId) {
-            await this.scheduleAppointmentNotifications(appointment.id, appointmentDate, appointmentDuration, appointment.workerId);
-        }
-
-        return appointment;
     }
 
     async remove(id: number) {

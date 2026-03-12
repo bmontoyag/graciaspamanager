@@ -35,7 +35,9 @@ export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate
         clientId: '',
         date: '', // Start date for the FIRST service
         status: 'PENDING',
-        notes: ''
+        notes: '',
+        advanceAmount: '',
+        paymentMethod: 'CASH'
     });
 
     const [selectedServices, setSelectedServices] = useState<any[]>([]);
@@ -86,11 +88,14 @@ export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate
             setIsSaving(false);
 
             if (appointment) {
+                const advance = appointment.payments?.find((p: any) => p.type === 'ADVANCE');
                 setFormData({
                     clientId: appointment.clientId?.toString() || '',
                     date: appointment.date ? getLocalDatetimeString(new Date(appointment.date)) : '',
                     status: appointment.status || 'PENDING',
-                    notes: appointment.notes || ''
+                    notes: appointment.notes || '',
+                    advanceAmount: advance?.amount?.toString() || '',
+                    paymentMethod: advance?.method || 'CASH'
                 });
                 setSelectedServices([{
                     serviceId: appointment.serviceId?.toString() || '',
@@ -103,7 +108,9 @@ export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate
                     clientId: '',
                     date: initialDate ? `${initialDate}T09:00` : '',
                     status: 'PENDING',
-                    notes: ''
+                    notes: '',
+                    advanceAmount: '',
+                    paymentMethod: 'CASH'
                 });
                 setSelectedServices([]);
             }
@@ -206,7 +213,9 @@ export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate
                     status: formData.status,
                     cost: Number(selectedServices[0].cost),
                     duration: Number(selectedServices[0].duration),
-                    notes: formData.notes
+                    notes: formData.notes,
+                    advanceAmount: Number(formData.advanceAmount) || 0,
+                    paymentMethod: formData.paymentMethod
                 };
             } else {
                 // Batch creation
@@ -220,7 +229,9 @@ export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate
                         workerId: Number(s.workerId),
                         cost: Number(s.cost),
                         duration: Number(s.duration)
-                    }))
+                    })),
+                    advanceAmount: Number(formData.advanceAmount) || 0,
+                    paymentMethod: formData.paymentMethod
                 };
             }
 
@@ -363,6 +374,8 @@ export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate
                                     <select name="status" value={formData.status} onChange={handleFormDataChange} className="w-full p-2 text-sm border rounded-md bg-background">
                                         <option value="PENDING">Pendiente</option>
                                         <option value="CONFIRMED">Confirmada</option>
+                                        <option value="COMPLETED">Completada</option>
+                                        <option value="CANCELLED">Cancelada</option>
                                     </select>
                                 </div>
                             </div>
@@ -439,6 +452,26 @@ export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate
                             <div className="space-y-1">
                                 <label className="text-sm font-semibold">Notas</label>
                                 <textarea name="notes" value={formData.notes} onChange={handleFormDataChange} className="w-full p-2 text-sm border rounded-md bg-background" rows={2} placeholder="Opcional..." />
+                            </div>
+
+                            <div className="p-4 border border-dashed rounded-lg bg-yellow-50/50 dark:bg-yellow-900/10 space-y-4">
+                                <p className="text-xs font-bold text-yellow-700 dark:text-yellow-500 uppercase">Adelanto para Separar Cita</p>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-semibold">Monto (S/)</label>
+                                        <input type="number" name="advanceAmount" value={formData.advanceAmount} onChange={handleFormDataChange} className="w-full p-2 text-sm border rounded-md bg-background" placeholder="0.00" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-semibold">Método de Pago</label>
+                                        <select name="paymentMethod" value={formData.paymentMethod} onChange={handleFormDataChange} className="w-full p-2 text-sm border rounded-md bg-background">
+                                            <option value="CASH">Efectivo</option>
+                                            <option value="YAPE">Yape</option>
+                                            <option value="PLIN">Plin</option>
+                                            <option value="CARD">Tarjeta</option>
+                                            <option value="TRANSFER">Transferencia</option>
+                                        </select>
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="flex justify-end gap-3 pt-2">
