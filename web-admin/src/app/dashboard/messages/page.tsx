@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Save, MessageCircle, Plus, X, Wand2 } from 'lucide-react';
+import { Save, MessageCircle, Plus, X, Wand2, Facebook, Instagram, Music2, Share2, Gift } from 'lucide-react';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -12,10 +12,20 @@ export default function MessagesSettingsPage() {
     // Textos
     const [birthdayMessage, setBirthdayMessage] = useState<string>('');
     const [whatsappMessageTemplate, setWhatsappMessageTemplate] = useState<string>('');
+    const [marketingMessage, setMarketingMessage] = useState<string>('');
     
+    // Social
+    const [facebookUrl, setFacebookUrl] = useState<string>('');
+    const [instagramUrl, setInstagramUrl] = useState<string>('');
+    const [tiktokUrl, setTiktokUrl] = useState<string>('');
+    const [whatsappUrl, setWhatsappUrl] = useState<string>('');
+
     // Discovery
     const [discoverySources, setDiscoverySources] = useState<string[]>([]);
     const [newSource, setNewSource] = useState('');
+
+    // Loyalty
+    const [loyaltyPointsToRedeem, setLoyaltyPointsToRedeem] = useState<number>(10);
 
     const [mounted, setMounted] = useState(false);
     const [hasChanges, setHasChanges] = useState(false);
@@ -33,7 +43,13 @@ export default function MessagesSettingsPage() {
                 const config = await res.json();
                 if (config.birthdayMessage) setBirthdayMessage(config.birthdayMessage);
                 if (config.whatsappMessageTemplate) setWhatsappMessageTemplate(config.whatsappMessageTemplate);
+                if (config.marketingMessage) setMarketingMessage(config.marketingMessage);
                 if (config.discoverySources) setDiscoverySources(config.discoverySources);
+                if (config.facebookUrl) setFacebookUrl(config.facebookUrl);
+                if (config.instagramUrl) setInstagramUrl(config.instagramUrl);
+                if (config.tiktokUrl) setTiktokUrl(config.tiktokUrl);
+                if (config.whatsappUrl) setWhatsappUrl(config.whatsappUrl);
+                if (config.loyaltyPointsToRedeem) setLoyaltyPointsToRedeem(config.loyaltyPointsToRedeem);
             }
         } catch (error) {
             console.error('Failed to load configuration:', error);
@@ -64,7 +80,13 @@ export default function MessagesSettingsPage() {
             const payload = {
                 birthdayMessage,
                 whatsappMessageTemplate,
+                marketingMessage,
                 discoverySources,
+                facebookUrl,
+                instagramUrl,
+                tiktokUrl,
+                whatsappUrl,
+                loyaltyPointsToRedeem
             };
 
             const token = localStorage.getItem('accessToken');
@@ -94,7 +116,7 @@ export default function MessagesSettingsPage() {
     return (
         <PageContainer className="max-w-4xl">
             <div className="flex justify-between items-center mb-8">
-                <h1 className="text-3xl font-serif font-bold">Mensajes y Captación</h1>
+                <h1 className="text-3xl font-serif font-bold">Marketing y Campañas</h1>
                 {hasChanges && (
                     <Button
                         onClick={saveChanges}
@@ -139,6 +161,100 @@ export default function MessagesSettingsPage() {
                                 Variables: <span className="font-mono bg-muted px-1 rounded text-primary">{'{name}'}</span>.
                             </p>
                         </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-2">Mensaje de Captación / Promociones</label>
+                            <textarea
+                                value={marketingMessage}
+                                onChange={(e) => { setMarketingMessage(e.target.value); handleChange(); }}
+                                className="w-full h-24 p-2 text-sm border rounded-md bg-background resize-none focus:ring-1 focus:ring-primary focus:border-primary"
+                                placeholder="Escribe el mensaje de marketing..."
+                            />
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Mensaje general para campañas de WhatsApp.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Redes Sociales */}
+                <div className="bg-card border rounded-lg p-6">
+                    <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+                        <Share2 className="h-5 w-5 text-primary" />
+                        Redes Sociales y Canales
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium flex items-center gap-2">
+                                <Facebook className="h-4 w-4 text-blue-600" /> Facebook (URL)
+                            </label>
+                            <input
+                                type="text"
+                                value={facebookUrl || ''}
+                                onChange={(e) => { setFacebookUrl(e.target.value); handleChange(); }}
+                                className="w-full p-2 text-sm border rounded-md bg-background"
+                                placeholder="https://facebook.com/..."
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium flex items-center gap-2">
+                                <Instagram className="h-4 w-4 text-pink-600" /> Instagram (URL)
+                            </label>
+                            <input
+                                type="text"
+                                value={instagramUrl || ''}
+                                onChange={(e) => { setInstagramUrl(e.target.value); handleChange(); }}
+                                className="w-full p-2 text-sm border rounded-md bg-background"
+                                placeholder="https://instagram.com/..."
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium flex items-center gap-2">
+                                <Music2 className="h-4 w-4 text-black" /> TikTok (URL)
+                            </label>
+                            <input
+                                type="text"
+                                value={tiktokUrl || ''}
+                                onChange={(e) => { setTiktokUrl(e.target.value); handleChange(); }}
+                                className="w-full p-2 text-sm border rounded-md bg-background"
+                                placeholder="https://tiktok.com/@..."
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium flex items-center gap-2">
+                                <MessageCircle className="h-4 w-4 text-green-600" /> WhatsApp Business (Link)
+                            </label>
+                            <input
+                                type="text"
+                                value={whatsappUrl || ''}
+                                onChange={(e) => { setWhatsappUrl(e.target.value); handleChange(); }}
+                                className="w-full p-2 text-sm border rounded-md bg-background"
+                                placeholder="https://wa.me/..."
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Reglas de Fidelización */}
+                <div className="bg-card border rounded-lg p-6">
+                    <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+                        <Gift className="h-5 w-5 text-primary" />
+                        Programa de Fidelidad
+                    </h2>
+                    <div className="max-w-xs space-y-2">
+                        <label className="text-sm font-medium">Puntos para Canjear Premio</label>
+                        <div className="flex items-center gap-3">
+                            <input
+                                type="number"
+                                value={loyaltyPointsToRedeem}
+                                onChange={(e) => { setLoyaltyPointsToRedeem(parseInt(e.target.value)); handleChange(); }}
+                                className="w-full p-2 text-sm border rounded-md bg-background"
+                                min="1"
+                            />
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">puntos</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                            Define cuántos puntos debe acumular un cliente para poder canjear su beneficio.
+                        </p>
                     </div>
                 </div>
 

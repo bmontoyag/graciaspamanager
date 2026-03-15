@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,6 +5,292 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model Configuration {
+  id                        Int      @id @default(autoincrement())
+  primaryColor              String?
+  backgroundColor           String?
+  sidebarColor              String?
+  themeMode                 String?
+  logoUrl                   String?
+  loginBgUrl                String?
+  openTime                  String   @default("09:00")
+  closeTime                 String   @default("21:00")
+  appointmentBuffer         Int      @default(10)
+  backupEnabled             Boolean  @default(false)
+  backupFrequency           String   @default("daily")
+  backupTime                String   @default("02:00")
+  backupEmail               String?
+  notificationsEnabled      Boolean  @default(true)
+  notifyNewAppointment      Boolean  @default(true)
+  notifyAppointmentReminder Boolean  @default(true)
+  notifyDailySummary        Boolean  @default(false)
+  notifyPaymentReceived     Boolean  @default(false)
+  notifyCancellation        Boolean  @default(true)
+  reminderMinutesBefore     Int      @default(60)
+  dailySummaryTime          String   @default("08:00")
+  birthdayMessage           String   @default("¡Hola {name}! 🎉 De parte de todo el equipo de Gracia Spa queremos desearte un muy feliz cumpleaños. 🎂 Tenemos una promoción especial para ti por tu día, ¡escríbenos para agendarla! 💆‍♀️✨")
+  whatsappMessageTemplate   String   @default("Hola {name}, tu reserva para {service} el {date} a las {time} está confirmada.")
+  discoverySources          String[] @default(["Facebook", "Instagram", "TikTok", "Referencia", "Google Maps"])
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+  loyaltyPointsToRedeem     Int      @default(10)
+  facebookUrl               String?
+  instagramUrl              String?
+  tiktokUrl                 String?
+  whatsappUrl               String?
+  marketingMessage          String?  @default("¡Descubre nuestras promociones especiales! ✨")
+}
+
+model BlockedSlot {
+  id        Int      @id @default(autoincrement())
+  date      DateTime
+  startTime String
+  endTime   String
+  reason    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model User {
+  id                   Int                 @id @default(autoincrement())
+  email                String              @unique
+  passwordHash         String
+  name                 String
+  phoneNumber          String?
+  fingerprintKey       String?
+  isActive             Boolean             @default(true)
+  pushToken            String?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  commissionPercentage Decimal             @default(50.0) @db.Decimal(5, 2)
+  appointmentsWorker   Appointment[]       @relation("WorkerAppointments")
+  appointmentWorkers   AppointmentWorker[]
+  attentions           AttentionWorker[]
+  auditLogs            AuditLog[]          @relation("UserAuditLogs")
+  expenses             Expense[]           @relation("WorkerExpenses")
+  notificationTasks    NotificationTask[]  @relation("UserNotificationTasks")
+  roles                UserRole[]
+}
+
+model Role {
+  id          Int          @id @default(autoincrement())
+  name        String       @unique
+  description String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  modules     RoleModule[]
+  users       UserRole[]
+}
+
+model Module {
+  id        Int          @id @default(autoincrement())
+  key       String       @unique
+  name      String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  roles     RoleModule[]
+}
+
+model RoleModule {
+  roleId   Int
+  moduleId Int
+  module   Module @relation(fields: [moduleId], references: [id])
+  role     Role   @relation(fields: [roleId], references: [id])
+
+  @@id([roleId, moduleId])
+}
+
+model UserRole {
+  userId Int
+  roleId Int
+  role   Role @relation(fields: [roleId], references: [id])
+  user   User @relation(fields: [userId], references: [id])
+
+  @@id([userId, roleId])
+}
+
+model Client {
+  id              Int                 @id @default(autoincrement())
+  name            String
+  email           String?             @unique
+  phoneNumber     String?
+  phone           String?
+  birthday        DateTime?
+  discoverySource String?
+  loyaltyPoints   Int                 @default(0)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  appointments    Appointment[]
+  attentions      Attention[]
+  redemptions     LoyaltyRedemption[]
+}
+
+model LoyaltyRedemption {
+  id        Int      @id @default(autoincrement())
+  clientId  Int
+  points    Int
+  notes     String?
+  createdAt DateTime @default(now())
+  client    Client   @relation(fields: [clientId], references: [id])
+}
+
+model ServiceCategory {
+  id          Int       @id @default(autoincrement())
+  name        String
+  description String?
+  services    Service[]
+}
+
+model Service {
+  id           Int              @id @default(autoincrement())
+  name         String
+  description  String?
+  price        Decimal          @db.Decimal(10, 2)
+  durationMin  Int
+  isActive     Boolean          @default(true)
+  categoryId   Int?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  appointments Appointment[]
+  attentions   Attention[]
+  category     ServiceCategory? @relation(fields: [categoryId], references: [id])
+}
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  price       Decimal  @db.Decimal(10, 2)
+  stock       Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Appointment {
+  id         Int                 @id @default(autoincrement())
+  date       DateTime
+  status     AppointmentStatus   @default(PENDING)
+  notes      String?
+  cost       Decimal             @default(0) @db.Decimal(10, 2)
+  duration   Int                 @default(60)
+  clientId   Int
+  workerId   Int?
+  serviceId  Int
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+  client     Client              @relation(fields: [clientId], references: [id])
+  service    Service             @relation(fields: [serviceId], references: [id])
+  worker     User?               @relation("WorkerAppointments", fields: [workerId], references: [id])
+  workers    AppointmentWorker[]
+  attentions Attention[]
+  payments   Payment[]
+}
+
+model AppointmentWorker {
+  id            Int         @id @default(autoincrement())
+  appointmentId Int
+  workerId      Int
+  isPrimary     Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  worker        User        @relation(fields: [workerId], references: [id])
+
+  @@unique([appointmentId, workerId])
+}
+
+model Attention {
+  id            Int               @id @default(autoincrement())
+  date          DateTime          @default(now())
+  notes         String?
+  totalCost     Decimal           @db.Decimal(10, 2)
+  clientId      Int
+  serviceId     Int
+  appointmentId Int?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  appointment   Appointment?      @relation(fields: [appointmentId], references: [id])
+  client        Client            @relation(fields: [clientId], references: [id])
+  service       Service           @relation(fields: [serviceId], references: [id])
+  workers       AttentionWorker[]
+  payments      Payment[]
+}
+
+model AttentionWorker {
+  id               Int       @id @default(autoincrement())
+  attentionId      Int
+  workerId         Int
+  commissionAmount Decimal   @default(0) @db.Decimal(10, 2)
+  isPrimary        Boolean   @default(true)
+  isPaid           Boolean   @default(false)
+  paidAt           DateTime?
+  expenseId        Int?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  attention        Attention @relation(fields: [attentionId], references: [id])
+  worker           User      @relation(fields: [workerId], references: [id])
+
+  @@unique([attentionId, workerId])
+}
+
+model Payment {
+  id            Int           @id @default(autoincrement())
+  amount        Decimal       @db.Decimal(10, 2)
+  date          DateTime      @default(now())
+  method        PaymentMethod @default(CASH)
+  type          PaymentType   @default(FULL)
+  notes         String?
+  appointmentId Int?
+  attentionId   Int?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  appointment   Appointment?  @relation(fields: [appointmentId], references: [id])
+  attention     Attention?    @relation(fields: [attentionId], references: [id])
+}
+
+model Expense {
+  id          Int      @id @default(autoincrement())
+  description String
+  amount      Decimal  @db.Decimal(10, 2)
+  date        DateTime @default(now())
+  category    String?
+  workerId    Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  worker      User?    @relation("WorkerExpenses", fields: [workerId], references: [id])
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  entity    String
+  entityId  Int?
+  action    String
+  oldData   Json?
+  newData   Json?
+  userId    Int?
+  createdAt DateTime @default(now())
+  user      User?    @relation("UserAuditLogs", fields: [userId], references: [id])
+}
+
+model NotificationTask {
+  id                   Int                    @id @default(autoincrement())
+  type                 NotificationTaskType
+  executeAt            DateTime
+  status               NotificationTaskStatus @default(PENDING)
+  title                String
+  body                 String
+  data                 Json?
+  targetUserId         Int
+  relatedClientId      Int?
+  relatedAppointmentId Int?
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  targetUser           User                   @relation("UserNotificationTasks", fields: [targetUserId], references: [id])
+
+  @@index([executeAt, status])
 }
 
 enum AppointmentStatus {
@@ -26,296 +309,10 @@ enum PaymentMethod {
   TRANSFER
 }
 
-model Configuration {
-  id              Int     @id @default(autoincrement())
-  primaryColor    String?
-  backgroundColor String?
-  sidebarColor    String?
-  themeMode       String? // 'light' or 'dark'
-  logoUrl         String? @db.Text
-  loginBgUrl      String? @db.Text
-
-  // Business Rules
-  openTime          String @default("09:00")
-  closeTime         String @default("21:00")
-  appointmentBuffer Int    @default(10) // Minutes between appointments
-
-  // Backup Configuration
-  backupEnabled   Boolean @default(false)
-  backupFrequency String  @default("daily") // daily, weekly, monthly
-  backupTime      String  @default("02:00") // HH:mm
-  backupEmail     String?
-
-  // Push Notification Configuration
-  notificationsEnabled      Boolean @default(true)
-  notifyNewAppointment      Boolean @default(true)
-  notifyAppointmentReminder Boolean @default(true)
-  notifyDailySummary        Boolean @default(false)
-  notifyPaymentReceived     Boolean @default(false)
-  notifyCancellation        Boolean @default(true)
-  reminderMinutesBefore     Int     @default(60) // Minutes before appointment
-  dailySummaryTime          String  @default("08:00") // HH:mm
-  birthdayMessage           String  @default("¡Hola {name}! 🎉 De parte de todo el equipo de Gracia Spa queremos desearte un muy feliz cumpleaños. 🎂 Tenemos una promoción especial para ti por tu día, ¡escríbenos para agendarla! 💆‍♀️✨") @db.Text
-
-  // Marketing & Communications
-  whatsappMessageTemplate   String   @default("Hola {name}, tu reserva para {service} el {date} a las {time} está confirmada.") @db.Text
-  discoverySources          String[] @default(["Facebook", "Instagram", "TikTok", "Referencia", "Google Maps"])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model BlockedSlot {
-  id        Int      @id @default(autoincrement())
-  date      DateTime // Specific date, or null for recurring? Let's keep it specific for now.
-  startTime String // "HH:mm"
-  endTime   String // "HH:mm"
-  reason    String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model User {
-  id             Int        @id @default(autoincrement())
-  email          String     @unique
-  passwordHash   String
-  name           String
-  phoneNumber    String? // For payments (Yape/Plin)
-  // role removed
-  roles          UserRole[]
-  fingerprintKey String? // Stores a public key or identifier for biometric auth
-  isActive       Boolean    @default(true)
-  pushToken      String? // Expo Push Token for notifications
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
-
-  appointmentsWorker   Appointment[]      @relation("WorkerAppointments")
-  attentions           AttentionWorker[] // Relation to AttentionWorker
-  expenses             Expense[]          @relation("WorkerExpenses")
-  auditLogs            AuditLog[]         @relation("UserAuditLogs")
-  notificationTasks    NotificationTask[] @relation("UserNotificationTasks")
-  commissionPercentage Decimal            @default(50.0) @db.Decimal(5, 2)
-}
-
-model Role {
-  id          Int          @id @default(autoincrement())
-  name        String       @unique // e.g., "Admin", "Therapist", "Receptionist"
-  description String?
-  modules     RoleModule[]
-  users       UserRole[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-}
-
-model Module {
-  id        Int          @id @default(autoincrement())
-  key       String       @unique // e.g., "dashboard", "users", "reports"
-  name      String // e.g., "Dashboard", "Usuarios", "Reportes"
-  roles     RoleModule[]
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
-}
-
-model RoleModule {
-  roleId   Int
-  moduleId Int
-  role     Role   @relation(fields: [roleId], references: [id])
-  module   Module @relation(fields: [moduleId], references: [id])
-
-  @@id([roleId, moduleId])
-}
-
-model UserRole {
-  userId Int
-  roleId Int
-  user   User @relation(fields: [userId], references: [id])
-  role   Role @relation(fields: [roleId], references: [id])
-
-  @@id([userId, roleId])
-}
-
-model Client {
-  id              Int       @id @default(autoincrement())
-  name            String
-  email           String?   @unique
-  phoneNumber     String?
-  phone           String? // WhatsApp notifications
-  birthday        DateTime?
-  discoverySource String? // e.g., TikTok, Instagram, Referencia
-  loyaltyPoints   Int       @default(0) // Integration with Loyalty Module
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  appointments Appointment[]
-  attentions   Attention[]
-  redemptions  LoyaltyRedemption[]
-}
-
-model LoyaltyRedemption {
-  id        Int      @id @default(autoincrement())
-  clientId  Int
-  client    Client   @relation(fields: [clientId], references: [id])
-  points    Int      // Puntos gastados en este canje
-  notes     String?  // Ej: "Recompensa de masaje de 15 min"
-  
-  createdAt DateTime @default(now())
-}
-
-model ServiceCategory {
-  id          Int       @id @default(autoincrement())
-  name        String
-  description String?
-  services    Service[]
-}
-
-model Service {
-  id          Int     @id @default(autoincrement())
-  name        String
-  description String?
-  price       Decimal @db.Decimal(10, 2)
-  durationMin Int // Duration in minutes
-  isActive    Boolean @default(true)
-
-  categoryId Int?
-  category   ServiceCategory? @relation(fields: [categoryId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  appointments Appointment[]
-  attentions   Attention[]
-}
-
-model Product {
-  id          Int      @id @default(autoincrement())
-  name        String
-  description String?
-  price       Decimal  @db.Decimal(10, 2)
-  stock       Int      @default(0)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model Appointment {
-  id       Int               @id @default(autoincrement())
-  date     DateTime
-  status   AppointmentStatus @default(PENDING)
-  notes    String?
-  cost     Decimal           @default(0) @db.Decimal(10, 2) // Projected cost
-  duration Int               @default(60) // Duration in minutes
-
-  clientId Int
-  client   Client @relation(fields: [clientId], references: [id])
-
-  workerId Int
-  worker   User @relation("WorkerAppointments", fields: [workerId], references: [id])
-
-  serviceId Int
-  service   Service @relation(fields: [serviceId], references: [id])
-
-  attentions Attention[]
-  payments   Payment[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Attention {
-  id        Int      @id @default(autoincrement())
-  date      DateTime @default(now())
-  notes     String?
-  totalCost Decimal  @db.Decimal(10, 2)
-
-  clientId Int
-  client   Client @relation(fields: [clientId], references: [id])
-
-  workers AttentionWorker[] // Support multiple workers
-
-  serviceId Int
-  service   Service @relation(fields: [serviceId], references: [id])
-
-  appointmentId Int?
-  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
-
-  payments Payment[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model AttentionWorker {
-  id Int @id @default(autoincrement())
-
-  attentionId Int
-  attention   Attention @relation(fields: [attentionId], references: [id])
-
-  workerId Int
-  worker   User @relation(fields: [workerId], references: [id])
-
-  commissionAmount Decimal @default(0) @db.Decimal(10, 2) // Calculated commission
-  isPrimary        Boolean @default(true) // To identify the main therapist if needed
-
-  isPaid    Boolean   @default(false) // Track if commission has been paid
-  paidAt    DateTime? // When the commission was paid
-  expenseId Int? // Link to the expense record when paid
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([attentionId, workerId]) // Prevent duplicate assignment
-}
-
-model Payment {
-  id     Int           @id @default(autoincrement())
-  amount Decimal       @db.Decimal(10, 2)
-  date   DateTime      @default(now())
-  method PaymentMethod @default(CASH)
-  type   PaymentType   @default(FULL)
-  notes  String?
-
-  appointmentId Int?
-  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
-
-  attentionId Int?
-  attention   Attention? @relation(fields: [attentionId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Expense {
-  id          Int      @id @default(autoincrement())
-  description String
-  amount      Decimal  @db.Decimal(10, 2)
-  date        DateTime @default(now())
-  category    String? // Sueldo, Alquiler, Insumos, etc.
-
-  workerId Int?
-  worker   User? @relation("WorkerExpenses", fields: [workerId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
 enum PaymentType {
   ADVANCE
   FULL
   RELICIDATION
-}
-
-model AuditLog {
-  id       Int    @id @default(autoincrement())
-  entity   String // e.g., "Client", "Appointment"
-  entityId Int? // The ID of the affected record
-  action   String // "CREATE", "UPDATE", "DELETE"
-  oldData  Json? // State before the change
-  newData  Json? // State after the change
-
-  userId Int? // User who made the change
-  user   User? @relation("UserAuditLogs", fields: [userId], references: [id])
-
-  createdAt DateTime @default(now())
 }
 
 enum NotificationTaskType {
@@ -329,27 +326,4 @@ enum NotificationTaskStatus {
   SENT
   FAILED
   CANCELLED
-}
-
-model NotificationTask {
-  id        Int                    @id @default(autoincrement())
-  type      NotificationTaskType
-  executeAt DateTime // Exact time when this should be processed
-  status    NotificationTaskStatus @default(PENDING)
-  title     String // Pre-computed title
-  body      String // Pre-computed body
-  data      Json? // Any extra payload for the push notification
-
-  // Who should receive this notification? (Typically the admin or worker)
-  targetUserId Int
-  targetUser   User @relation("UserNotificationTasks", fields: [targetUserId], references: [id])
-
-  // Optional relations to the entities this task refers to
-  relatedClientId      Int?
-  relatedAppointmentId Int?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([executeAt, status]) // Critical index for fast polling
 }

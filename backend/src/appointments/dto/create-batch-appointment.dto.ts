@@ -7,7 +7,12 @@ class AppointmentServiceItemDto {
     serviceId: number;
 
     @IsInt()
-    workerId: number;
+    @IsOptional()
+    workerId?: number;
+
+    @IsOptional()
+    @IsInt({ each: true })
+    workerIds?: number[];
 
     @IsOptional()
     @IsNumber()

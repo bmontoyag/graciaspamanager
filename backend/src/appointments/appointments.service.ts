@@ -14,19 +14,37 @@ export class AppointmentsService {
     ) { }
 
     async create(createAppointmentDto: CreateAppointmentDto) {
-        const { date, duration, advanceAmount, paymentMethod, ...rest } = createAppointmentDto;
+        const { date, duration, advanceAmount, paymentMethod, workerId, workerIds: dtoWorkerIds, ...rest } = createAppointmentDto;
         const appointmentDate = new Date(date);
         const appointmentDuration = duration || 60;
         const appointmentEndDate = new Date(appointmentDate.getTime() + appointmentDuration * 60000);
 
-        await this.validateAppointment(appointmentDate, appointmentEndDate, undefined, createAppointmentDto.workerId);
+        // Prioritize workerIds from array, fallback to workerId singular
+        const workerIds = dtoWorkerIds && dtoWorkerIds.length > 0 ? dtoWorkerIds : (workerId ? [workerId] : []);
+        const primaryWorkerId = workerIds[0];
+
+        if (workerIds.length === 0) {
+            throw new BadRequestException('Debe asignar al menos un terapeuta.');
+        }
+
+        // Validate all workers for the slot
+        for (const id of workerIds) {
+            await this.validateAppointment(appointmentDate, appointmentEndDate, undefined, id);
+        }
 
         return this.prisma.$transaction(async (tx) => {
             const appointment = await tx.appointment.create({
                 data: {
                     ...rest,
                     date: appointmentDate,
-                    duration: appointmentDuration
+                    duration: appointmentDuration,
+                    workerId: primaryWorkerId, // Maintain compatibility
+                    workers: {
+                        create: workerIds.map((id, index) => ({
+                            workerId: id,
+                            isPrimary: index === 0
+                        }))
+                    }
                 },
             });
 
@@ -42,7 +60,9 @@ export class AppointmentsService {
                 });
             }
 
-            await this.scheduleAppointmentNotifications(appointment.id, appointmentDate, appointmentDuration, createAppointmentDto.workerId, tx);
+            for (const id of workerIds) {
+                await this.scheduleAppointmentNotifications(appointment.id, appointmentDate, appointmentDuration, id, tx);
+            }
 
             return appointment;
         });
@@ -60,14 +80,25 @@ export class AppointmentsService {
                 const duration = serviceItem.duration || 60;
                 const currentEndTime = new Date(currentStartTime.getTime() + duration * 60000);
                 
-                // Validate availability for THIS worker in THIS segment
-                await this.validateAppointment(
-                    currentStartTime,
-                    currentEndTime,
-                    undefined,
-                    serviceItem.workerId,
-                    tx
-                );
+                // Support both workerId (old) and workerIds (new)
+                const workerIds = serviceItem.workerIds && serviceItem.workerIds.length > 0 
+                    ? serviceItem.workerIds 
+                    : (serviceItem.workerId ? [serviceItem.workerId] : []);
+                
+                if (workerIds.length === 0) {
+                    throw new BadRequestException('Cada servicio debe tener al menos un terapeuta.');
+                }
+
+                // Validate availability for ALL workers in this segment
+                for (const id of workerIds) {
+                    await this.validateAppointment(
+                        currentStartTime,
+                        currentEndTime,
+                        undefined,
+                        id,
+                        tx
+                    );
+                }
 
                 const appointment = await tx.appointment.create({
                     data: {
@@ -76,18 +107,28 @@ export class AppointmentsService {
                         notes: notes,
                         clientId: clientId,
                         serviceId: serviceItem.serviceId,
-                        workerId: serviceItem.workerId,
+                        workerId: workerIds[0], // Maintain compatibility
                         cost: serviceItem.cost || 0,
                         duration: duration,
+                        workers: {
+                            create: workerIds.map((id, index) => ({
+                                workerId: id,
+                                isPrimary: index === 0
+                            }))
+                        }
                     },
                     include: {
                         client: true,
                         service: true,
                         worker: true,
+                        workers: true
                     }
                 });
 
-                await this.scheduleAppointmentNotifications(appointment.id, currentStartTime, duration, serviceItem.workerId, tx);
+                for (const id of workerIds) {
+                    await this.scheduleAppointmentNotifications(appointment.id, currentStartTime, duration, id, tx);
+                }
+                
                 createdAppointments.push(appointment);
 
                 // Advance time for the next service in the batch
@@ -132,6 +173,7 @@ export class AppointmentsService {
                 worker: true,
                 service: true,
                 payments: true,
+                workers: true,
             },
         });
         if (!appointment) {
@@ -141,7 +183,7 @@ export class AppointmentsService {
     }
 
     async update(id: number, updateAppointmentDto: UpdateAppointmentDto) {
-        const { date, duration, advanceAmount, paymentMethod, ...rest } = updateAppointmentDto;
+        const { date, duration, advanceAmount, paymentMethod, workerId, workerIds: dtoWorkerIds, ...rest } = updateAppointmentDto;
         const existingAppointment = await this.findOne(id);
 
         let appointmentDate = existingAppointment.date;
@@ -152,13 +194,23 @@ export class AppointmentsService {
 
         const appointmentEndDate = new Date(appointmentDate.getTime() + appointmentDuration * 60000);
 
-        if (date || duration || updateAppointmentDto.workerId) {
-            await this.validateAppointment(
-                appointmentDate, 
-                appointmentEndDate, 
-                id, 
-                updateAppointmentDto.workerId || existingAppointment.workerId
-            );
+        // Handle Worker IDs update
+        const workerIds = dtoWorkerIds && dtoWorkerIds.length > 0 
+            ? dtoWorkerIds 
+            : (workerId ? [workerId] : undefined);
+
+        if (date || duration || workerIds) {
+            const workersToCheck = workerIds || existingAppointment.workerId ? [existingAppointment.workerId] : [];
+            for (const idToCheck of workersToCheck) {
+                if (idToCheck) {
+                    await this.validateAppointment(
+                        appointmentDate, 
+                        appointmentEndDate, 
+                        id, 
+                        idToCheck
+                    );
+                }
+            }
         }
 
         return this.prisma.$transaction(async (tx) => {
@@ -168,8 +220,25 @@ export class AppointmentsService {
                     ...rest,
                     ...(date && { date: appointmentDate }),
                     ...(duration && { duration: appointmentDuration }),
+                    ...(workerIds && { workerId: workerIds[0] }), // Sync primary workerId
                 },
             });
+
+            if (workerIds) {
+                // Remove all old workers
+                await tx.appointmentWorker.deleteMany({
+                    where: { appointmentId: id }
+                });
+
+                // Add new workers
+                await tx.appointmentWorker.createMany({
+                    data: workerIds.map((wId, index) => ({
+                        appointmentId: id,
+                        workerId: wId,
+                        isPrimary: index === 0
+                    }))
+                });
+            }
 
             if (advanceAmount !== undefined) {
                 const existingAdvance = await tx.payment.findFirst({
@@ -200,15 +269,17 @@ export class AppointmentsService {
                         });
                     }
                 } else if (existingAdvance) {
-                    // Logic for setting amount to 0 or null? Let's assume remove it if 0
                     await tx.payment.delete({
                         where: { id: existingAdvance.id }
                     });
                 }
             }
 
-            if (date || duration || updateAppointmentDto.workerId) {
-                await this.scheduleAppointmentNotifications(appointment.id, appointmentDate, appointmentDuration, appointment.workerId, tx);
+            if (date || duration || workerIds) {
+                const finalWorkerIds = workerIds || (await tx.appointmentWorker.findMany({ where: { appointmentId: id } })).map(w => w.workerId);
+                for (const fId of finalWorkerIds) {
+                    await this.scheduleAppointmentNotifications(appointment.id, appointmentDate, appointmentDuration, fId, tx);
+                }
             }
 
             return appointment;

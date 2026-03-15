@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, UserPlus, ChevronDown, ChevronUp, Loader2, PlusCircle, Trash2 } from 'lucide-react';
+import { X, UserPlus, ChevronDown, ChevronUp, Loader2, PlusCircle, Trash2, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface AppointmentDialogProps {
@@ -44,9 +44,10 @@ export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate
 
     // Temporal state for adding a service
     const [currentServiceId, setCurrentServiceId] = useState('');
-    const [currentWorkerId, setCurrentWorkerId] = useState('');
+    const [currentWorkerIds, setCurrentWorkerIds] = useState<string[]>([]);
     const [currentCost, setCurrentCost] = useState('');
     const [currentDuration, setCurrentDuration] = useState('');
+    const [editingServiceIndex, setEditingServiceIndex] = useState<number | null>(null);
 
     // Inline client creation
     const [showNewClient, setShowNewClient] = useState(false);
@@ -99,7 +100,7 @@ export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate
                 });
                 setSelectedServices([{
                     serviceId: appointment.serviceId?.toString() || '',
-                    workerId: appointment.workerId?.toString() || '',
+                    workerIds: appointment.workers?.map((w: any) => w.workerId.toString()) || (appointment.workerId ? [appointment.workerId.toString()] : []),
                     cost: appointment.cost?.toString() || '',
                     duration: appointment.duration?.toString() || '60'
                 }]);
@@ -116,7 +117,7 @@ export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate
             }
             // Reset current service state
             setCurrentServiceId('');
-            setCurrentWorkerId('');
+            setCurrentWorkerIds([]);
             setCurrentCost('');
             setCurrentDuration('');
         }
@@ -128,29 +129,57 @@ export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate
     };
 
     const handleServiceSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const id = e.target.value;
-        const svc = services.find(s => s.id === Number(id));
-        setCurrentServiceId(id);
+        const sId = e.target.value;
+        setCurrentServiceId(sId);
+        const svc = services.find(s => s.id.toString() === sId);
         if (svc) {
             setCurrentCost(svc.price.toString());
-            setCurrentDuration(svc.durationMin?.toString() || '60');
+            setCurrentDuration(svc.durationMin.toString());
         }
     };
 
+    const handleEditService = (index: number) => {
+        const item = selectedServices[index];
+        setEditingServiceIndex(index);
+        setCurrentServiceId(item.serviceId);
+        setCurrentWorkerIds(item.workerIds || (item.workerId ? [item.workerId.toString()] : []));
+        setCurrentCost(item.cost.toString());
+        setCurrentDuration(item.duration.toString());
+    };
+
     const handleAddService = () => {
-        if (!currentServiceId || !currentWorkerId || !currentCost || !currentDuration) {
-            toast.error('Complete los datos del servicio');
+        if (!currentServiceId || currentWorkerIds.length === 0 || !currentCost || !currentDuration) {
+            toast.error('Complete los datos del servicio y asigne al menos un terapeuta');
             return;
         }
-        setSelectedServices(prev => [...prev, {
+
+        const newService = {
             serviceId: currentServiceId,
-            workerId: currentWorkerId,
+            workerIds: currentWorkerIds,
             cost: currentCost,
             duration: currentDuration
-        }]);
+        };
+
+        if (editingServiceIndex !== null) {
+            const updated = [...selectedServices];
+            updated[editingServiceIndex] = newService;
+            setSelectedServices(updated);
+            setEditingServiceIndex(null);
+        } else {
+            if (appointment) {
+                // In edit mode, we replace the single service (if that's the desired behavior for single appointments)
+                // However, the user said "no me permite editar los servicios solo eliminarlos".
+                // Let's allow adding multiple or replacing if it's a batch? 
+                // Mostly appointments are 1-1 service. 
+                setSelectedServices([newService]);
+            } else {
+                setSelectedServices(prev => [...prev, newService]);
+            }
+        }
+
         // Reset
         setCurrentServiceId('');
-        setCurrentWorkerId('');
+        setCurrentWorkerIds([]);
         setCurrentCost('');
         setCurrentDuration('');
     };
@@ -204,11 +233,11 @@ export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate
             
             let payload;
             if (appointment) {
-                // Individual update (single service supported for now on edit)
+                // Individual update (Now supports full editing)
                 payload = {
                     clientId: Number(formData.clientId),
                     serviceId: Number(selectedServices[0].serviceId),
-                    workerId: Number(selectedServices[0].workerId),
+                    workerIds: selectedServices[0].workerIds.map(Number),
                     date: new Date(formData.date).toISOString(),
                     status: formData.status,
                     cost: Number(selectedServices[0].cost),
@@ -226,7 +255,7 @@ export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate
                     notes: formData.notes,
                     services: selectedServices.map(s => ({
                         serviceId: Number(s.serviceId),
-                        workerId: Number(s.workerId),
+                        workerIds: s.workerIds.map(Number),
                         cost: Number(s.cost),
                         duration: Number(s.duration)
                     })),
@@ -397,16 +426,21 @@ export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate
                                                         </div>
                                                         <div>
                                                             <p className="text-sm font-medium">{svc?.name}</p>
-                                                            <p className="text-xs text-muted-foreground">{wrk?.name} · {item.duration} min</p>
+                                                            <p className="text-xs text-muted-foreground">
+                                                                {workers.filter(w => item.workerIds?.includes(w.id.toString())).map(w => w.name).join(', ')} · {item.duration} min
+                                                            </p>
                                                         </div>
                                                     </div>
-                                                    <div className="flex items-center gap-4">
+                                                    <div className="flex items-center gap-2">
                                                         <p className="text-sm font-bold">S/ {item.cost}</p>
-                                                        {!appointment && (
-                                                            <button type="button" onClick={() => handleRemoveService(index)} className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <button type="button" onClick={() => handleEditService(index)} className="text-primary p-1 hover:bg-primary/10 rounded">
+                                                                <Pencil className="h-4 w-4" />
+                                                            </button>
+                                                            <button type="button" onClick={() => handleRemoveService(index)} className="text-destructive p-1 hover:bg-destructive/10 rounded">
                                                                 <Trash2 className="h-4 w-4" />
                                                             </button>
-                                                        )}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             );
@@ -425,29 +459,47 @@ export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate
                                     </div>
                                 )}
 
-                                {!appointment && (
-                                    <div className="p-4 border rounded-lg bg-muted/5 space-y-4">
-                                        <p className="text-xs font-bold text-muted-foreground uppercase">Agregar Servicio</p>
+                                <div className="p-4 border rounded-lg bg-muted/5 space-y-4">
+                                    <p className="text-xs font-bold text-muted-foreground uppercase">
+                                        {editingServiceIndex !== null ? 'Editar Servicio' : 'Agregar Servicio'}
+                                    </p>
                                         <div className="grid grid-cols-2 gap-3">
                                             <select value={currentServiceId} onChange={handleServiceSelect} className="col-span-2 p-2 text-sm border rounded-md bg-background">
                                                 <option value="">Seleccionar Servicio</option>
                                                 {services.map(s => <option key={s.id} value={s.id}>{s.name} (S/ {s.price})</option>)}
                                             </select>
-                                            <select value={currentWorkerId} onChange={e => setCurrentWorkerId(e.target.value)} className="p-2 text-sm border rounded-md bg-background">
-                                                <option value="">Terapeuta</option>
-                                                {workers.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-                                            </select>
+                                            
+                                            <div className="col-span-2 space-y-1">
+                                                <label className="text-xs font-semibold text-muted-foreground">Terapeutas Asignados *</label>
+                                                <div className="grid grid-cols-2 gap-2 border p-2 rounded-md bg-background max-h-32 overflow-y-auto">
+                                                    {workers.map(w => (
+                                                        <label key={w.id} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-muted/50 p-1 rounded">
+                                                            <input 
+                                                                type="checkbox" 
+                                                                checked={currentWorkerIds.includes(w.id.toString())}
+                                                                onChange={() => setCurrentWorkerIds(prev => 
+                                                                    prev.includes(w.id.toString()) 
+                                                                        ? prev.filter(id => id !== w.id.toString())
+                                                                        : [...prev, w.id.toString()]
+                                                                )}
+                                                                className="rounded border-gray-300"
+                                                            />
+                                                            {w.name}
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            </div>
+
                                             <div className="flex gap-2">
                                                 <input type="number" placeholder="Cost" value={currentCost} onChange={e => setCurrentCost(e.target.value)} className="w-1/2 p-2 text-sm border rounded-md bg-background" />
                                                 <input type="number" placeholder="Min" value={currentDuration} onChange={e => setCurrentDuration(e.target.value)} className="w-1/2 p-2 text-sm border rounded-md bg-background" />
                                             </div>
                                         </div>
-                                        <button type="button" onClick={handleAddService} className="w-full py-2 bg-secondary text-secondary-foreground rounded-md text-sm font-bold flex items-center justify-center gap-2">
-                                            <PlusCircle className="h-4 w-4" /> Añadir a la Cita
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
+                                        <button type="button" onClick={handleAddService} className="w-full py-2 bg-primary text-white rounded-md text-sm font-bold shadow-sm hover:bg-primary/90 transition-colors">
+                                        {editingServiceIndex !== null ? 'Guardar Cambios en Servicio' : (appointment ? 'Actualizar Servicio' : 'Añadir a la Reserva')}
+                                    </button>
+                                </div>
+                        </div>
 
                             <div className="space-y-1">
                                 <label className="text-sm font-semibold">Notas</label>

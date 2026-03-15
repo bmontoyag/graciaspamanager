@@ -17,7 +17,12 @@ export class CreateAppointmentDto {
     clientId: number;
 
     @IsInt()
-    workerId: number;
+    @IsOptional()
+    workerId?: number;
+
+    @IsOptional()
+    @IsInt({ each: true })
+    workerIds?: number[];
 
     @IsInt()
     serviceId: number;

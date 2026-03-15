@@ -121,12 +121,15 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
                         setAdvanceAmount(totalAdvance);
 
                         // Precargar el servicio de la cita
-                        if (apt.serviceId && apt.workerId) {
+                        if (apt.serviceId) {
+                            const workerIds = apt.workers?.map((aw: any) => aw.workerId.toString()) || 
+                                             (apt.workerId ? [apt.workerId.toString()] : []);
+                            
                             setFormData(prev => ({
                                 ...prev,
                                 services: [{
                                     serviceId: apt.serviceId.toString(),
-                                    workerIds: [apt.workerId.toString()],
+                                    workerIds: workerIds,
                                     totalCost: apt.cost?.toString() || '0'
                                 }]
                             }));
@@ -350,15 +353,13 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
 
                     {/* ══ SERVICIO ══ */}
                             <div className="flex items-center justify-between">
-                                <label className="text-sm font-semibold">Agregar Servicios *</label>
-                                {!attention && (
-                                    <button type="button" onClick={() => { setShowNewService(v => !v); setServiceSearch(''); }}
-                                        className="flex items-center gap-1 text-xs text-primary hover:underline">
-                                        <PlusCircle className="h-3.5 w-3.5" />
-                                        {showNewService ? 'Cancelar' : 'Nuevo servicio'}
-                                        {showNewService ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                                    </button>
-                                )}
+                                <label className="text-sm font-semibold">Servicios *</label>
+                                <button type="button" onClick={() => { setShowNewService(v => !v); setServiceSearch(''); }}
+                                    className="flex items-center gap-1 text-xs text-primary hover:underline">
+                                    <PlusCircle className="h-3.5 w-3.5" />
+                                    {showNewService ? 'Cancelar' : 'Nuevo servicio'}
+                                    {showNewService ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                                </button>
                             </div>
 
                             {/* Lista de Servicios Agregados */}
@@ -375,15 +376,13 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
                                                 </div>
                                                 <div className="flex items-center gap-4">
                                                     <p className="font-semibold text-primary">S/ {Number(item.totalCost).toFixed(2)}</p>
-                                                    {!attention && (
-                                                        <button 
-                                                            type="button" 
-                                                            onClick={() => handleRemoveService(index)}
-                                                            className="text-destructive hover:bg-destructive/10 p-1.5 rounded-full"
-                                                        >
-                                                            <X className="h-4 w-4" />
-                                                        </button>
-                                                    )}
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => handleRemoveService(index)}
+                                                        className="text-destructive hover:bg-destructive/10 p-1.5 rounded-full"
+                                                    >
+                                                        <X className="h-4 w-4" />
+                                                    </button>
                                                 </div>
                                             </div>
                                         );
@@ -408,9 +407,8 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
                                 </div>
                             )}
 
-                            {/* Formulario para agregar nuevo servicio a la lista (Solo disponible al crear) */}
-                            {!attention && (
-                                <div className="bg-muted/10 p-4 rounded-lg border border-dashed space-y-4">
+                            {/* Formulario para agregar servicio */}
+                            <div className="bg-muted/10 p-4 rounded-lg border border-dashed space-y-4">
                                     {showNewService ? (
                             <div className="p-3 border border-dashed border-emerald-500/50 rounded-lg bg-emerald-500/5 space-y-2">
                                 <p className="text-xs font-semibold text-emerald-600">Crear nuevo servicio</p>
@@ -464,7 +462,6 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
                             </div>
                         )}
                         </div>
-                    )}
 
                     {/* ══ CITA ASOCIADA ══ */}
                     {formData.clientId && (

@@ -41,7 +41,7 @@ export default function BackupPage() {
         try {
             setLoading(true);
             const token = localStorage.getItem('accessToken');
-            const response = await fetch(`${API_URL}ue/backup/download`, {
+            const response = await fetch(`${API_URL}/backup/download`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }

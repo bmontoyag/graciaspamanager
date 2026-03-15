@@ -192,24 +192,26 @@ export class AttentionsService {
   }
 
   async update(id: number, updateAttentionDto: UpdateAttentionDto) {
-    const { workerIds, ...rest } = updateAttentionDto;
+    const { workerIds, serviceId, ...rest } = updateAttentionDto;
 
     return this.prisma.$transaction(async (tx) => {
-      // If workerIds are provided, we update the relations
-      if (workerIds && workerIds.length > 0) {
-        // Necesitamos el costo total para recalcular.
-        const totalCostStr = rest.totalCost !== undefined
-          ? rest.totalCost
-          : (await tx.attention.findUnique({ where: { id } }))?.totalCost;
+      const existing = await tx.attention.findUnique({ 
+        where: { id },
+        include: { workers: true }
+      });
 
-        const totalCost = Number(totalCostStr) || 0;
-        const workerCounts = workerIds.length > 0 ? workerIds.length : 1;
-        const splitCost = totalCost / workerCounts;
+      if (!existing) throw new Error('Atención no encontrada');
 
-        console.log(`[Audit] Editando atención ${id}: Total=${totalCost}, Terapeutas=${workerIds.length}, Dividido=${splitCost}`);
+      const finalWorkerIds = workerIds || existing.workers.map(w => w.workerId);
+      const finalServiceId = serviceId || existing.serviceId;
+      const finalTotalCost = Number(rest.totalCost !== undefined ? rest.totalCost : existing.totalCost);
+
+      if (workerIds || serviceId || rest.totalCost !== undefined) {
+        const workerCounts = finalWorkerIds.length > 0 ? finalWorkerIds.length : 1;
+        const splitCost = finalTotalCost / workerCounts;
 
         const workersInfo = await tx.user.findMany({
-          where: { id: { in: workerIds.map(Number) } }
+          where: { id: { in: finalWorkerIds.map(Number) } }
         });
 
         // Delete all old worker relations
@@ -222,14 +224,13 @@ export class AttentionsService {
           where: { id },
           data: {
             ...rest,
+            serviceId: finalServiceId,
             workers: {
-              create: workerIds.map((workerId, index) => {
+              create: finalWorkerIds.map((workerId, index) => {
                 const worker = workersInfo.find(w => Number(w.id) === Number(workerId));
                 const pStr = worker?.commissionPercentage?.toString() || '50';
                 const percentage = parseFloat(pStr) || 50;
                 const commissionAmount = Number(splitCost) * (percentage / 100);
-
-                console.log(`[Audit] -> Nueva Comision para ${worker?.name || workerId}: ${commissionAmount} (${percentage}%)`);
 
                 return {
                   workerId: Number(workerId),
@@ -241,7 +242,6 @@ export class AttentionsService {
           }
         });
       } else {
-        // If no workerIds passed, just update the main fields
         return tx.attention.update({
           where: { id },
           data: rest,

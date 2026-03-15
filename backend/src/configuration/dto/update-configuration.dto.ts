@@ -32,7 +32,16 @@ export class UpdateConfigurationDto {
 
     // Marketing & Communications
     @IsOptional() @IsString() whatsappMessageTemplate?: string;
+    @IsOptional() @IsString() facebookUrl?: string;
+    @IsOptional() @IsString() instagramUrl?: string;
+    @IsOptional() @IsString() tiktokUrl?: string;
+    @IsOptional() @IsString() whatsappUrl?: string;
+    @IsOptional() @IsString() marketingMessage?: string;
     
+    @IsOptional()
+    @IsInt()
+    loyaltyPointsToRedeem?: number;
+
     @IsOptional()
     @IsString({ each: true })
     discoverySources?: string[];

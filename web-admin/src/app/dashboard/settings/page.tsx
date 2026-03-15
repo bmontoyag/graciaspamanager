@@ -18,12 +18,11 @@ const PREDEFINED_THEMES = [
 export default function SettingsPage() {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     // Colors
-    const [primaryColor, setPrimaryColor] = useState('#000000');
-    const [sidebarColor, setSidebarColor] = useState('#000000');
-    const [backgroundColor, setBackgroundColor] = useState('#ffffff');
-
+    const [primaryColor, setPrimaryColor] = useState('#8B5CF6');
+    const [sidebarColor, setSidebarColor] = useState('#1F2937');
+    const [backgroundColor, setBackgroundColor] = useState('#F9FAFB');
     // Images
-    const [logoUrl, setLogoUrl] = useState<string>('');
+    const [logoUrl, setLogoUrl] = useState<string | null>(null);
     const [loginBgUrl, setLoginBgUrl] = useState<string>('');
 
     // Themes
@@ -249,8 +248,9 @@ export default function SettingsPage() {
                         </div>
                     </div>
                 </div>
-            </div>
-        </PageContainer>
-    );
-}
+
+                </div>
+            </PageContainer>
+        );
+    }
 
