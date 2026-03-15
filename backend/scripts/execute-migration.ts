@@ -23,7 +23,7 @@ async function executeMigration() {
         const statements = sql
             .split(';')
             .map(s => s.trim())
-            .filter(s => s.length > 0 && !s.startsWith('--'));
+            .filter(s => s.length > 0);
 
         for (const statement of statements) {
             console.log(`Executing: ${statement.substring(0, 50)}...`);
