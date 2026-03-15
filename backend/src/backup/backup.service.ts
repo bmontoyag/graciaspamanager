@@ -84,17 +84,21 @@ export class BackupService {
             ]);
 
             const chunks: Buffer[] = [];
+            let errorData = '';
+            
             dockerProcess.stdout.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+            dockerProcess.stderr.on('data', (data) => {
+                errorData += data.toString();
+            });
             
             dockerProcess.on('error', (err) => {
                 this.logger.warn(`Docker backup failed or not found: ${err.message}. Trying local pg_dump...`);
-                // Fallback to local pg_dump if docker fails to start
                 this.localPgDump(resolve, reject, chunks);
             });
 
             dockerProcess.on('close', (code) => {
                 if (code !== 0) {
-                    this.logger.warn(`Docker backup exited with code ${code}. Trying local pg_dump...`);
+                    this.logger.warn(`Docker backup exited with code ${code}. Error: ${errorData}. Trying local pg_dump...`);
                     this.localPgDump(resolve, reject);
                 } else {
                     resolve(Buffer.concat(chunks));
@@ -111,10 +115,11 @@ export class BackupService {
         
         let cmd = 'pg_dump';
         let args: string[] = [];
+        let env = { ...process.env };
 
         if (match) {
             const [, user, password, host, port, db] = match;
-            process.env.PGPASSWORD = password;
+            env.PGPASSWORD = password;
             args = ['-U', user, '-h', host, '-p', port, '--no-owner', '--no-acl', db.split('?')[0]];
         } else {
             const dbUser = process.env.POSTGRES_USER || 'admin';
@@ -122,14 +127,27 @@ export class BackupService {
             args = ['-U', dbUser, '--no-owner', '--no-acl', dbName];
         }
 
-        const localProcess = spawn(cmd, args);
+        const localProcess = spawn(cmd, args, { env });
         const chunks = existingChunks;
+        let errorData = '';
 
         localProcess.stdout.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
-        localProcess.on('error', (err) => reject(new Error(`Local pg_dump failed: ${err.message}`)));
+        localProcess.stderr.on('data', (data) => {
+            errorData += data.toString();
+        });
+
+        localProcess.on('error', (err) => {
+            this.logger.error(`Local pg_dump error: ${err.message}`);
+            reject(new Error(`Local pg_dump failed: ${err.message}`));
+        });
+
         localProcess.on('close', (code) => {
-            if (code !== 0) reject(new Error(`pg_dump process exited with code ${code}`));
-            else resolve(Buffer.concat(chunks));
+            if (code !== 0) {
+                this.logger.error(`pg_dump final failure. Code: ${code}. Error: ${errorData}`);
+                reject(new Error(`pg_dump process exited with code ${code}. Error: ${errorData}`));
+            } else {
+                resolve(Buffer.concat(chunks));
+            }
         });
     }
 
