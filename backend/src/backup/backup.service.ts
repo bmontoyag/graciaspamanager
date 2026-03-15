@@ -72,28 +72,30 @@ export class BackupService {
 
     private generateBackupBuffer(): Promise<Buffer> {
         return new Promise((resolve, reject) => {
+            const dbUrl = process.env.DATABASE_URL || '';
             const dbUser = process.env.POSTGRES_USER || 'admin';
             const dbName = process.env.POSTGRES_DB || 'graciaspa_db';
             const containerName = 'graciaspa_postgres';
 
+            // Intentar primero con docker si parece ser el entorno
             const dockerProcess = spawn('docker', [
                 'exec', '-i', containerName,
                 'pg_dump', '-U', dbUser, '--no-owner', '--no-acl', dbName
             ]);
 
             const chunks: Buffer[] = [];
-
             dockerProcess.stdout.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
-
-            dockerProcess.stderr.on('data', (data) => {
-                this.logger.debug(`pg_dump stderr: ${data}`);
+            
+            dockerProcess.on('error', (err) => {
+                this.logger.warn(`Docker backup failed or not found: ${err.message}. Trying local pg_dump...`);
+                // Fallback to local pg_dump if docker fails to start
+                this.localPgDump(resolve, reject, chunks);
             });
-
-            dockerProcess.on('error', (error) => reject(error));
 
             dockerProcess.on('close', (code) => {
                 if (code !== 0) {
-                    reject(new Error(`Backup process exited with code ${code}`));
+                    this.logger.warn(`Docker backup exited with code ${code}. Trying local pg_dump...`);
+                    this.localPgDump(resolve, reject);
                 } else {
                     resolve(Buffer.concat(chunks));
                 }
@@ -101,29 +103,64 @@ export class BackupService {
         });
     }
 
-    // Reusing the stream logic for direct download if needed, 
-    // but mostly for consistency.
-    private generateBackupStream(stream: any) {
-        const dbUser = process.env.POSTGRES_USER || 'admin';
-        const dbName = process.env.POSTGRES_DB || 'graciaspa_db';
-        const containerName = 'graciaspa_postgres';
+    private localPgDump(resolve: any, reject: any, existingChunks: Buffer[] = []) {
+        // Obtenemos los datos de la URL de conexión de Prisma si existe
+        // postgresql://USER:PASSWORD@HOST:PORT/DB
+        const dbUrl = process.env.DATABASE_URL || '';
+        const match = dbUrl.match(/postgresql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+)/);
+        
+        let cmd = 'pg_dump';
+        let args: string[] = [];
 
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        const filename = `backup-${dbName}-${timestamp}.sql`;
-
-        if (stream.setHeader) {
-            stream.setHeader('Content-Disposition', `attachment; filename=${filename}`);
-            stream.setHeader('Content-Type', 'application/sql');
+        if (match) {
+            const [, user, password, host, port, db] = match;
+            process.env.PGPASSWORD = password;
+            args = ['-U', user, '-h', host, '-p', port, '--no-owner', '--no-acl', db.split('?')[0]];
+        } else {
+            const dbUser = process.env.POSTGRES_USER || 'admin';
+            const dbName = process.env.POSTGRES_DB || 'graciaspa_db';
+            args = ['-U', dbUser, '--no-owner', '--no-acl', dbName];
         }
 
-        const dockerProcess = spawn('docker', [
-            'exec', '-i', containerName,
-            'pg_dump', '-U', dbUser, '--no-owner', '--no-acl', dbName
-        ]);
+        const localProcess = spawn(cmd, args);
+        const chunks = existingChunks;
 
-        dockerProcess.stdout.pipe(stream);
+        localProcess.stdout.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+        localProcess.on('error', (err) => reject(new Error(`Local pg_dump failed: ${err.message}`)));
+        localProcess.on('close', (code) => {
+            if (code !== 0) reject(new Error(`pg_dump process exited with code ${code}`));
+            else resolve(Buffer.concat(chunks));
+        });
+    }
 
-        dockerProcess.stderr.on('data', (data) => this.logger.debug(`stderr: ${data}`));
+    // Reusing the stream logic for direct download if needed, 
+    // but mostly for consistency.
+    private async generateBackupStream(stream: any) {
+        try {
+            const buffer = await this.generateBackupBuffer();
+            
+            if (!buffer || buffer.length === 0) {
+                throw new Error('El respaldo generado está vacío (0 bytes). Verifique los permisos del usuario de base de datos.');
+            }
+            
+            const dbName = process.env.POSTGRES_DB || 'graciaspa_db';
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const filename = `backup-${dbName}-${timestamp}.sql`;
+
+            if (stream.setHeader) {
+                stream.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+                stream.setHeader('Content-Type', 'application/sql');
+                stream.setHeader('Content-Length', buffer.length.toString());
+            }
+
+            stream.send ? stream.send(buffer) : stream.write(buffer);
+            if (stream.end) stream.end();
+        } catch (error) {
+            this.logger.error(`Falló la generación del backup para descarga: ${error.message}`);
+            if (!stream.headersSent && stream.status) {
+                stream.status(500).json({ message: 'Error al generar el backup' });
+            }
+        }
     }
 
     async restoreBackup(buffer: Buffer) {
