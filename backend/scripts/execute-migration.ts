@@ -19,8 +19,16 @@ async function executeMigration() {
         
         console.log('📝 Ejecutando script SQL...');
         
-        // Ejecutamos el SQL completo. PostgreSQL soporta múltiples sentencias en una cadena.
-        await prisma.$executeRawUnsafe(sql);
+        // Dividir el SQL por punto y coma, filtrar líneas vacías y comentarios
+        const statements = sql
+            .split(';')
+            .map(s => s.trim())
+            .filter(s => s.length > 0 && !s.startsWith('--'));
+
+        for (const statement of statements) {
+            console.log(`Executing: ${statement.substring(0, 50)}...`);
+            await prisma.$executeRawUnsafe(statement);
+        }
         
         console.log('✅ Migración de datos completada exitosamente.');
         console.log('   - Los terapeutas han sido migrados a la nueva estructura.');
