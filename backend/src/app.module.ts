@@ -22,6 +22,7 @@ import { BackupModule } from './backup/backup.module';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AuditLogsModule } from './audit-logs/audit-logs.module';
+import { ExpenseTypesModule } from './expense-types/expense-types.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { AuditLogsModule } from './audit-logs/audit-logs.module';
     BackupModule,
     NotificationsModule,
     AuditLogsModule,
+    ExpenseTypesModule,
   ],
   controllers: [AppController],
   providers: [

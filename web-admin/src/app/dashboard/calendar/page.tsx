@@ -64,15 +64,17 @@ export default function CalendarPage() {
         start: appt.date,
         end: appt.date,
         backgroundColor:
-            appt.status === 'CONFIRMED' ? '#10b981' :
-                appt.status === 'PENDING' ? '#f59e0b' :
-                    appt.status === 'COMPLETED' ? '#3b82f6' :
-                        '#6b7280',
+            appt.status === 'CONFIRMED' ? '#059669' : // Emerald 600
+                appt.status === 'PENDING' ? '#d97706' :   // Amber 600
+                    appt.status === 'COMPLETED' ? '#2563eb' : // Blue 600
+                        appt.status === 'CANCELLED' || appt.status === 'NO_SHOW' ? '#dc2626' : // Red 600
+                            '#4b5563', // Gray 600
         borderColor:
-            appt.status === 'CONFIRMED' ? '#059669' :
-                appt.status === 'PENDING' ? '#d97706' :
-                    appt.status === 'COMPLETED' ? '#2563eb' :
-                        '#4b5563',
+            appt.status === 'CONFIRMED' ? '#047857' : 
+                appt.status === 'PENDING' ? '#b45309' :
+                    appt.status === 'COMPLETED' ? '#1d4ed8' :
+                        appt.status === 'CANCELLED' || appt.status === 'NO_SHOW' ? '#b91c1c' :
+                            '#374151',
         extendedProps: {
             // Pass full appointment object for editing
             originalAppointment: appt
@@ -111,6 +113,25 @@ export default function CalendarPage() {
             </div>
 
             <div className="bg-card rounded-lg border shadow-sm p-4">
+                <div className="flex flex-wrap gap-4 mb-4 text-sm font-medium">
+                    <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded-full bg-[#059669]"></div>
+                        <span>Confirmado</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded-full bg-[#d97706]"></div>
+                        <span>Pendiente</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded-full bg-[#2563eb]"></div>
+                        <span>Completado</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded-full bg-[#dc2626]"></div>
+                        <span>Cancelado / No asistió</span>
+                    </div>
+                </div>
+
                 {loading ? (
                     <div className="text-center py-12 text-muted-foreground">Cargando calendario...</div>
                 ) : (

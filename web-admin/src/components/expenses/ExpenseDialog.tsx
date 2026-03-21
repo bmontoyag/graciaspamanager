@@ -22,17 +22,29 @@ export default function ExpenseDialog({ isOpen, onClose, onSave, expense }: Expe
         description: '',
         amount: '',
         category: '',
+        typeId: '',
         workerId: '', // '' significa Gracia Spa (null en DB)
         date: getLocalToday()
     });
     const [users, setUsers] = useState<any[]>([]);
+    const [expenseTypes, setExpenseTypes] = useState<any[]>([]);
 
     useEffect(() => {
         if (isOpen) {
-            fetch(`${API_URL}/users`)
-                .then(res => res.json())
-                .then(data => setUsers(Array.isArray(data) ? data : []))
-                .catch(err => console.error("Error fetching users:", err));
+            const token = localStorage.getItem('accessToken');
+            const headers = { 'Authorization': `Bearer ${token}` };
+
+            Promise.all([
+                fetch(`${API_URL}/users`, { headers }),
+                fetch(`${API_URL}/expense-types`, { headers })
+            ])
+                .then(async ([usersRes, typesRes]) => {
+                    const usersData = await usersRes.json();
+                    const typesData = await typesRes.json();
+                    setUsers(Array.isArray(usersData) ? usersData : []);
+                    setExpenseTypes(Array.isArray(typesData) ? typesData : []);
+                })
+                .catch(err => console.error("Error fetching data:", err));
         }
     }, [isOpen]);
 
@@ -42,6 +54,7 @@ export default function ExpenseDialog({ isOpen, onClose, onSave, expense }: Expe
                 description: expense.description || '',
                 amount: expense.amount?.toString() || '',
                 category: expense.category || '',
+                typeId: expense.typeId ? expense.typeId.toString() : '',
                 workerId: expense.workerId ? expense.workerId.toString() : '',
                 date: expense.date ? new Date(expense.date).toISOString().split('T')[0] : getLocalToday()
             });
@@ -50,6 +63,7 @@ export default function ExpenseDialog({ isOpen, onClose, onSave, expense }: Expe
                 description: '',
                 amount: '',
                 category: '',
+                typeId: '',
                 workerId: '',
                 date: getLocalToday()
             });
@@ -69,6 +83,7 @@ export default function ExpenseDialog({ isOpen, onClose, onSave, expense }: Expe
                 description: formData.description,
                 amount: parseFloat(formData.amount),
                 category: formData.category,
+                typeId: formData.typeId ? parseInt(formData.typeId) : null,
                 // Fijamos UTC 12 PM para evitar cruces
                 date: new Date(formData.date + 'T12:00:00.000Z').toISOString()
             };
@@ -153,24 +168,42 @@ export default function ExpenseDialog({ isOpen, onClose, onSave, expense }: Expe
                         />
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Categoría</label>
-                        <select
-                            name="category"
-                            value={formData.category}
-                            onChange={handleChange}
-                            className="w-full p-2 border rounded-md bg-background"
-                            required
-                        >
-                            <option value="">Seleccionar...</option>
-                            <option value="Salarios">Salarios/Comisiones</option>
-                            <option value="Alquiler">Alquiler</option>
-                            <option value="Servicios">Servicios</option>
-                            <option value="Insumos">Insumos</option>
-                            <option value="Mantenimiento">Mantenimiento</option>
-                            <option value="Marketing">Marketing</option>
-                            <option value="Otros">Otros</option>
-                        </select>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Categoría General</label>
+                            <select
+                                name="category"
+                                value={formData.category}
+                                onChange={handleChange}
+                                className="w-full p-2 border rounded-md bg-background"
+                                required
+                            >
+                                <option value="">Seleccionar...</option>
+                                <option value="Salarios">Salarios/Comisiones</option>
+                                <option value="Alquiler">Alquiler</option>
+                                <option value="Servicios">Servicios</option>
+                                <option value="Insumos">Insumos</option>
+                                <option value="Mantenimiento">Mantenimiento</option>
+                                <option value="Marketing">Marketing</option>
+                                <option value="Otros">Otros</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Tipo de Gasto (Admin)</label>
+                            <select
+                                name="typeId"
+                                value={formData.typeId}
+                                onChange={handleChange}
+                                className="w-full p-2 border rounded-md bg-background"
+                            >
+                                <option value="">Ninguno</option>
+                                {expenseTypes.map((t) => (
+                                    <option key={t.id} value={t.id}>
+                                        {t.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
 
                     <div>

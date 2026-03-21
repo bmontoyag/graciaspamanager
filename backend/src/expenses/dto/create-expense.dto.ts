@@ -15,6 +15,10 @@ export class CreateExpenseDto {
 
     @IsNumber()
     @IsOptional()
+    typeId?: number;
+
+    @IsNumber()
+    @IsOptional()
     workerId?: number;
 
     @IsDateString()

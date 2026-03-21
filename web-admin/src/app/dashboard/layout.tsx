@@ -264,6 +264,12 @@ export default function DashboardLayout({
                                     </Link>
                                 </li>
                                 <li>
+                                    <Link href="/dashboard/settings/expense-types" onClick={closeSidebar} className="flex items-center rounded-md p-2 hover:bg-white/10 transition-colors">
+                                        <Package className="mr-3 h-5 w-5" />
+                                        Tipos de Gastos
+                                    </Link>
+                                </li>
+                                <li>
                                     <Link href="/dashboard/messages" onClick={closeSidebar} className="flex items-center rounded-md p-2 hover:bg-white/10 transition-colors">
                                         <Megaphone className="mr-3 h-5 w-5" />
                                         Marketing y Redes
