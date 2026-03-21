@@ -57,6 +57,16 @@ export class BackupService {
         this.generateBackupStream(res);
     }
 
+    async testEmailBackup() {
+        const config = await this.configService.getGlobalConfig();
+        if (!config.backupEnabled || !config.backupEmail) {
+            throw new Error('Backup is not enabled or email is not configured in settings.');
+        }
+        this.logger.log(`Manual test: Triggering backup email to ${config.backupEmail}...`);
+        await this.performBackup(config.backupEmail);
+        return { message: `Backup email triggered for ${config.backupEmail}` };
+    }
+
     private async performBackup(email: string) {
         try {
             const dumpBuffer = await this.generateBackupBuffer();

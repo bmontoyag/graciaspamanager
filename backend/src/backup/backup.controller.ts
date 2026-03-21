@@ -12,6 +12,11 @@ export class BackupController {
     return this.backupService.downloadBackup(res);
   }
 
+  @Post('test-email')
+  async testEmail() {
+    return await this.backupService.testEmailBackup();
+  }
+
   @Post('restore')
   @UseInterceptors(FileInterceptor('file'))
   async restore(@UploadedFile() file: any) {

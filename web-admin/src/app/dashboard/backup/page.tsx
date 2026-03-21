@@ -90,6 +90,31 @@ export default function BackupPage() {
         }
     };
 
+    const handleTestEmail = async () => {
+        try {
+            setLoading(true);
+            const token = localStorage.getItem('accessToken');
+            const res = await fetch(`${API_URL}/backup/test-email`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.message || 'Error al enviar email de prueba');
+            }
+
+            toast.success('Email de prueba enviado (revisa tu bandeja y carpeta de spam)');
+        } catch (error: any) {
+            console.error(error);
+            toast.error(error.message || 'Error al enviar email de prueba');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleRestore = async (file: File) => {
         try {
             setLoading(true);
@@ -251,9 +276,17 @@ export default function BackupPage() {
                             </div>
                         )}
 
-                        <Button onClick={handleSaveConfig} disabled={loading} variant="default">
-                            {loading ? 'Guardando...' : 'Guardar Configuración'}
-                        </Button>
+                        <div className="flex gap-2">
+                            <Button onClick={handleSaveConfig} disabled={loading} variant="default">
+                                {loading ? 'Guardando...' : 'Guardar Configuración'}
+                            </Button>
+                            {config.backupEnabled && (
+                                <Button onClick={handleTestEmail} disabled={loading} variant="outline" className="gap-2">
+                                    <Mail className="h-4 w-4" />
+                                    Probar Envío Ahora
+                                </Button>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
