@@ -6,15 +6,12 @@ import {
   Patch,
   Param,
   Delete,
-  UseGuards,
 } from '@nestjs/common';
 import { ExpenseTypesService } from './expense-types.service';
 import { CreateExpenseTypeDto } from './dto/create-expense-type.dto';
 import { UpdateExpenseTypeDto } from './dto/update-expense-type.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('expense-types')
-@UseGuards(JwtAuthGuard)
 export class ExpenseTypesController {
   constructor(private readonly expenseTypesService: ExpenseTypesService) {}
 
