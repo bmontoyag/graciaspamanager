@@ -72,12 +72,11 @@ export class BackupService {
 
     private generateBackupBuffer(): Promise<Buffer> {
         return new Promise((resolve, reject) => {
-            const dbUrl = process.env.DATABASE_URL || '';
             const dbUser = process.env.POSTGRES_USER || 'admin';
             const dbName = process.env.POSTGRES_DB || 'graciaspa_db';
             const containerName = 'graciaspa_postgres';
 
-            // Intentar primero con docker si parece ser el entorno
+            // Attempt Docker backup first if it exists
             const dockerProcess = spawn('docker', [
                 'exec', '-i', containerName,
                 'pg_dump', '-U', dbUser, '--no-owner', '--no-acl', dbName
@@ -92,13 +91,13 @@ export class BackupService {
             });
             
             dockerProcess.on('error', (err) => {
-                this.logger.warn(`Docker backup failed or not found: ${err.message}. Trying local pg_dump...`);
+                this.logger.debug(`Docker backup not found or failed: ${err.message}. Trying local pg_dump...`);
                 this.localPgDump(resolve, reject, chunks);
             });
 
             dockerProcess.on('close', (code) => {
                 if (code !== 0) {
-                    this.logger.warn(`Docker backup exited with code ${code}. Error: ${errorData}. Trying local pg_dump...`);
+                    this.logger.debug(`Docker backup exited with code ${code}. Error: ${errorData || 'N/A'}. Trying local pg_dump...`);
                     this.localPgDump(resolve, reject);
                 } else {
                     resolve(Buffer.concat(chunks));
@@ -108,23 +107,26 @@ export class BackupService {
     }
 
     private localPgDump(resolve: any, reject: any, existingChunks: Buffer[] = []) {
-        // Obtenemos los datos de la URL de conexión de Prisma si existe
-        // postgresql://USER:PASSWORD@HOST:PORT/DB
         const dbUrl = process.env.DATABASE_URL || '';
         const match = dbUrl.match(/postgresql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+)/);
         
-        let cmd = 'pg_dump';
+        // Allow custom pg_dump path from ENV
+        let cmd = process.env.PG_DUMP_PATH || 'pg_dump';
         let args: string[] = [];
         let env = { ...process.env };
 
         if (match) {
             const [, user, password, host, port, db] = match;
             env.PGPASSWORD = password;
-            args = ['-U', user, '-h', host, '-p', port, '--no-owner', '--no-acl', db.split('?')[0]];
+            // Handle optional query params in DB name
+            const actualDb = db.split('?')[0];
+            args = ['-U', user, '-h', host, '-p', port, '--no-owner', '--no-acl', actualDb];
+            this.logger.debug(`Using local pg_dump with user ${user} on host ${host}:${port}`);
         } else {
             const dbUser = process.env.POSTGRES_USER || 'admin';
             const dbName = process.env.POSTGRES_DB || 'graciaspa_db';
             args = ['-U', dbUser, '--no-owner', '--no-acl', dbName];
+            this.logger.debug(`Using default local pg_dump with user ${dbUser}`);
         }
 
         const localProcess = spawn(cmd, args, { env });
@@ -137,15 +139,22 @@ export class BackupService {
         });
 
         localProcess.on('error', (err) => {
-            this.logger.error(`Local pg_dump error: ${err.message}`);
-            reject(new Error(`Local pg_dump failed: ${err.message}`));
+            const msg = `Failed to start local pg_dump (${cmd}): ${err.message}. Ensure PostgreSQL client tools are installed and in PATH or set PG_DUMP_PATH.`;
+            this.logger.error(msg);
+            reject(new Error(msg));
         });
 
         localProcess.on('close', (code) => {
             if (code !== 0) {
-                this.logger.error(`pg_dump final failure. Code: ${code}. Error: ${errorData}`);
-                reject(new Error(`pg_dump process exited with code ${code}. Error: ${errorData}`));
+                const msg = `pg_dump process failed with code ${code}. Error Output: ${errorData || 'No error output'}`;
+                this.logger.error(msg);
+                reject(new Error(msg));
+            } else if (chunks.length === 0) {
+                const msg = `pg_dump succeeded but produced 0 bytes. Check user permissions.`;
+                this.logger.error(msg);
+                reject(new Error(msg));
             } else {
+                this.logger.log(`Backup buffer generated successfully (${Buffer.concat(chunks).length} bytes)`);
                 resolve(Buffer.concat(chunks));
             }
         });

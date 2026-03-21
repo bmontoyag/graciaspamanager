@@ -6,7 +6,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 
 @Global()
 @Module({
-    imports: [PrismaModule, ScheduleModule.forRoot()],
+    imports: [PrismaModule, ScheduleModule],
     providers: [NotificationsService, NotificationsCronService],
     exports: [NotificationsService],
 })

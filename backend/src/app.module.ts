@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
@@ -45,6 +46,7 @@ import { ExpenseTypesModule } from './expense-types/expense-types.module';
     NotificationsModule,
     AuditLogsModule,
     ExpenseTypesModule,
+    ScheduleModule.forRoot(),
   ],
   controllers: [AppController],
   providers: [
