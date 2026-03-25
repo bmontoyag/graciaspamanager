@@ -5,6 +5,7 @@ import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConfigurationService } from '../configuration/configuration.service';
 import { Prisma } from '@prisma/client';
+import { getMidnightLima } from '../common/utils/date-utils';
 
 @Injectable()
 export class AppointmentsService {
@@ -326,10 +327,8 @@ export class AppointmentsService {
             const checkStart = new Date(startDate.getTime() - bufferMs);
             const checkEnd = new Date(endDate.getTime() + bufferMs);
 
-            const dayStart = new Date(startDate);
-            dayStart.setHours(0, 0, 0, 0);
-            const dayEnd = new Date(startDate);
-            dayEnd.setHours(23, 59, 59, 999);
+            const dayStart = getMidnightLima(startDate);
+            const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000 - 1);
 
             const dayAppointments = await prismaClient.appointment.findMany({
                 where: {
@@ -357,14 +356,12 @@ export class AppointmentsService {
         }
 
         // 3. Blocked Slots
-        const startOfDay = new Date(startDate);
-        startOfDay.setHours(0, 0, 0, 0);
-        const endOfDay = new Date(startDate);
-        endOfDay.setHours(23, 59, 59, 999);
+        const dayStart = getMidnightLima(startDate);
+        const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000 - 1);
 
         const blockedSlots = await prismaClient.blockedSlot.findMany({
             where: {
-                date: { gte: startOfDay, lte: endOfDay }
+                date: { gte: dayStart, lte: dayEnd }
             }
         });
 
