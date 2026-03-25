@@ -13,6 +13,10 @@ export class ServiceAttentionDto {
     @IsNumber()
     @IsNotEmpty()
     totalCost: number;
+
+    @IsNumber()
+    @IsOptional()
+    duration?: number;
 }
 
 export class CreateBatchAttentionDto {

@@ -28,4 +28,8 @@ export class CreateAttentionDto {
     @IsNumber()
     @IsOptional()
     appointmentId?: number;
+
+    @IsNumber()
+    @IsOptional()
+    duration?: number;
 }

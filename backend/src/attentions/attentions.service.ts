@@ -26,9 +26,39 @@ export class AttentionsService {
 
     // Use a transaction to ensure both the attention is created and points are updated
     return this.prisma.$transaction(async (tx) => {
+      let finalAppointmentId = rest.appointmentId;
+
+      // Si no hay ID de cita, crear una automáticamente como COMPLETADA
+      if (!finalAppointmentId) {
+        const service = await tx.service.findUnique({
+          where: { id: rest.serviceId }
+        });
+        const appDuration = rest.duration || service?.durationMin || 60;
+        const appDate = rest.date ? new Date(rest.date) : new Date();
+
+        const appointment = await tx.appointment.create({
+          data: {
+            clientId: rest.clientId,
+            serviceId: rest.serviceId,
+            date: appDate,
+            duration: appDuration,
+            status: 'COMPLETED',
+            cost: totalCost,
+            workers: {
+              create: workerIds.map((workerId, index) => ({
+                workerId: Number(workerId),
+                isPrimary: index === 0
+              }))
+            }
+          }
+        });
+        finalAppointmentId = appointment.id;
+      }
+
       const attention = await tx.attention.create({
         data: {
           ...rest,
+          appointmentId: finalAppointmentId,
           workers: {
             create: workerIds.map((workerId, index) => {
               const worker = workersInfo.find(w => Number(w.id) === Number(workerId));
@@ -58,7 +88,7 @@ export class AttentionsService {
         }
       });
 
-      // Automáticamente marcar la cita como completada si viene vinculada
+      // Automáticamente marcar la cita como completada si viene vinculada (caso de cita existente)
       if (rest.appointmentId) {
         await tx.appointment.update({
           where: { id: rest.appointmentId },
@@ -100,12 +130,41 @@ export class AttentionsService {
         const workerCounts = workerIds.length > 0 ? workerIds.length : 1;
         const splitCost = totalCost / workerCounts;
 
+        let currentAppointmentId = appointmentId;
+
+        // Si no hay ID de cita para el lote, crear una para cada servicio
+        if (!currentAppointmentId) {
+          const service = await tx.service.findUnique({
+            where: { id: serviceData.serviceId }
+          });
+          const appDuration = serviceData.duration || service?.durationMin || 60;
+          const appDate = rest.date ? new Date(rest.date) : new Date();
+
+          const appointment = await tx.appointment.create({
+            data: {
+              clientId,
+              serviceId: serviceData.serviceId,
+              date: appDate,
+              duration: appDuration,
+              status: 'COMPLETED',
+              cost: totalCost,
+              workers: {
+                create: workerIds.map((workerId) => ({
+                  workerId: Number(workerId),
+                  isPrimary: true // Opcional: ajustar lógica de isPrimary si es necesario
+                }))
+              }
+            }
+          });
+          currentAppointmentId = appointment.id;
+        }
+
         const attention = await tx.attention.create({
           data: {
             clientId,
             serviceId: serviceData.serviceId,
             totalCost,
-            appointmentId,
+            appointmentId: currentAppointmentId,
             ...rest,
             workers: {
               create: workerIds.map((workerId, index) => {
