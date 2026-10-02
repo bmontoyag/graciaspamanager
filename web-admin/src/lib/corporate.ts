@@ -1,23 +1,25 @@
+import { TONE_CLASSES } from '@/components/ui/status-badge';
+
 export const QUOTE_STATUS: Record<string, { label: string; className: string }> = {
-    DRAFT: { label: 'Borrador', className: 'bg-gray-100 text-gray-700' },
-    SENT: { label: 'Enviada', className: 'bg-blue-100 text-blue-700' },
-    ACCEPTED: { label: 'Aceptada', className: 'bg-green-100 text-green-700' },
-    REJECTED: { label: 'Rechazada', className: 'bg-red-100 text-red-700' },
-    CONVERTED: { label: 'Convertida', className: 'bg-purple-100 text-purple-700' },
-    EXPIRED: { label: 'Vencida', className: 'bg-amber-100 text-amber-700' },
+    DRAFT: { label: 'Borrador', className: TONE_CLASSES.neutral },
+    SENT: { label: 'Enviada', className: TONE_CLASSES.info },
+    ACCEPTED: { label: 'Aceptada', className: TONE_CLASSES.success },
+    REJECTED: { label: 'Rechazada', className: TONE_CLASSES.danger },
+    CONVERTED: { label: 'Convertida', className: TONE_CLASSES.brand },
+    EXPIRED: { label: 'Vencida', className: TONE_CLASSES.warning },
 };
 
 export const EVENT_STATUS: Record<string, { label: string; className: string }> = {
-    SCHEDULED: { label: 'Programado', className: 'bg-blue-100 text-blue-700' },
-    IN_PROGRESS: { label: 'En curso', className: 'bg-amber-100 text-amber-700' },
-    COMPLETED: { label: 'Completado', className: 'bg-green-100 text-green-700' },
-    CANCELLED: { label: 'Cancelado', className: 'bg-red-100 text-red-700' },
+    SCHEDULED: { label: 'Programado', className: TONE_CLASSES.info },
+    IN_PROGRESS: { label: 'En curso', className: TONE_CLASSES.warning },
+    COMPLETED: { label: 'Completado', className: TONE_CLASSES.success },
+    CANCELLED: { label: 'Cancelado', className: TONE_CLASSES.danger },
 };
 
 export const DAY_STATUS: Record<string, { label: string; className: string }> = {
-    SCHEDULED: { label: 'Programada', className: 'bg-blue-100 text-blue-700' },
-    COMPLETED: { label: 'Realizada', className: 'bg-green-100 text-green-700' },
-    CANCELLED: { label: 'Cancelada', className: 'bg-red-100 text-red-700' },
+    SCHEDULED: { label: 'Programada', className: TONE_CLASSES.info },
+    COMPLETED: { label: 'Realizada', className: TONE_CLASSES.success },
+    CANCELLED: { label: 'Cancelada', className: TONE_CLASSES.danger },
 };
 
 export const PAYMENT_METHODS: Record<string, string> = {
@@ -48,8 +50,7 @@ export function displayQuoteStatus(quote: { status: string; issueDate: string; v
     return isQuoteExpired(quote) ? QUOTE_STATUS.EXPIRED : QUOTE_STATUS[quote.status];
 }
 
-export const formatMoney = (value: number | string) =>
-    `S/ ${Number(value || 0).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+export { formatMoney } from './format';
 
 /** Fechas de calendario se guardan a las 12:00 UTC; se formatean en UTC para no desfasar el día. */
 export const formatDay = (iso: string, options: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', year: 'numeric' }) =>

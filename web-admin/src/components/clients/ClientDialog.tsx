@@ -1,7 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { authFetch } from '@/lib/api';
+import { formatMoney } from '@/lib/format';
+import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 
 interface ClientDialogProps {
     isOpen: boolean;
@@ -25,7 +28,7 @@ export default function ClientDialog({ isOpen, onClose, onSave, client }: Client
 
     useEffect(() => {
         // Load discovery sources
-        fetch(`${API_URL}/configuration`)
+        authFetch(`${API_URL}/configuration`)
             .then(res => res.json())
             .then(config => {
                 if (config.discoverySources) {
@@ -78,7 +81,7 @@ export default function ClientDialog({ isOpen, onClose, onSave, client }: Client
                 ? `${API_URL}/clients/${client.id}`
                 : `${API_URL}/clients`;
 
-            const res = await fetch(url, {
+            const res = await authFetch(url, {
                 method: client ? 'PATCH' : 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -90,26 +93,19 @@ export default function ClientDialog({ isOpen, onClose, onSave, client }: Client
             onClose();
         } catch (error) {
             console.error('Error saving client:', error);
-            alert('Error al guardar el cliente');
+            toast.error('Error al guardar el cliente');
         }
     };
 
-    if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-            <div className="bg-card w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-lg border shadow-lg p-6 relative">
-                <button
-                    onClick={onClose}
-                    className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
-                >
-                    <X className="h-5 w-5" />
-                </button>
+        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+            <DialogContent className="max-w-2xl">
 
                 <div className="mb-6">
-                    <h2 className="text-2xl font-serif font-bold">
+                    <DialogTitle className="text-2xl font-serif">
                         {client ? `Expediente: ${client.name}` : 'Nuevo Cliente'}
-                    </h2>
+                    </DialogTitle>
                     {client && (
                         <p className="text-sm text-muted-foreground mt-1">
                             Puntos de Fidelidad: <strong className="text-primary">{client.loyaltyPoints || 0} pts</strong>
@@ -145,7 +141,7 @@ export default function ClientDialog({ isOpen, onClose, onSave, client }: Client
                                     type="text"
                                     name="name"
                                     required
-                                    className="w-full p-2 rounded-md border bg-background"
+                                    className="w-full p-2 rounded-md border bg-card"
                                     value={formData.name}
                                     onChange={handleChange}
                                 />
@@ -155,7 +151,7 @@ export default function ClientDialog({ isOpen, onClose, onSave, client }: Client
                                 <input
                                     type="tel"
                                     name="phone"
-                                    className="w-full p-2 rounded-md border bg-background"
+                                    className="w-full p-2 rounded-md border bg-card"
                                     value={formData.phone}
                                     onChange={handleChange}
                                 />
@@ -165,7 +161,7 @@ export default function ClientDialog({ isOpen, onClose, onSave, client }: Client
                                 <input
                                     type="email"
                                     name="email"
-                                    className="w-full p-2 rounded-md border bg-background"
+                                    className="w-full p-2 rounded-md border bg-card"
                                     value={formData.email}
                                     onChange={handleChange}
                                 />
@@ -175,7 +171,7 @@ export default function ClientDialog({ isOpen, onClose, onSave, client }: Client
                                 <input
                                     type="date"
                                     name="birthday"
-                                    className="w-full p-2 rounded-md border bg-background"
+                                    className="w-full p-2 rounded-md border bg-card"
                                     value={formData.birthday}
                                     onChange={handleChange}
                                 />
@@ -184,7 +180,7 @@ export default function ClientDialog({ isOpen, onClose, onSave, client }: Client
                                 <label className="block text-sm font-medium mb-1">¿De dónde nos conoció?</label>
                                 <select
                                     name="discoverySource"
-                                    className="w-full p-2 rounded-md border bg-background"
+                                    className="w-full p-2 rounded-md border bg-card"
                                     value={formData.discoverySource}
                                     onChange={handleChange as any}
                                 >
@@ -242,7 +238,7 @@ export default function ClientDialog({ isOpen, onClose, onSave, client }: Client
                                                     {att.service?.name || 'Servicio General'}
                                                 </td>
                                                 <td className="px-4 py-3 text-green-600 font-medium">
-                                                    S/ {Number(att.totalCost || 0).toFixed(2)}
+                                                    {formatMoney(Number(att.totalCost || 0))}
                                                 </td>
                                             </tr>
                                         ))}
@@ -261,7 +257,7 @@ export default function ClientDialog({ isOpen, onClose, onSave, client }: Client
                         </div>
                     </div>
                 )}
-            </div>
-        </div >
+            </DialogContent>
+        </Dialog>
     );
 }

@@ -2,7 +2,9 @@ import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/commo
 import { ModulesService } from './modules.service';
 import { CreateModuleDto } from './dto/create-module.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
+import { RequirePermissions } from '../auth/permissions.decorator';
 
+@RequirePermissions('roles')
 @Controller('modules')
 export class ModulesController {
     constructor(private readonly modulesService: ModulesService) { }

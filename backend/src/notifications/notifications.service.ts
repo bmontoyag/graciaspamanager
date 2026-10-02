@@ -1,49 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import { Expo, ExpoPushMessage } from 'expo-server-sdk';
-import { PrismaService } from '../prisma/prisma.service';
 
+/**
+ * Punto de integración para notificaciones push.
+ * La app móvil anterior (Expo) se retiró; la nueva app Flutter deberá conectar aquí su proveedor
+ * (por ejemplo Firebase Cloud Messaging) y registrar el token en User.pushToken.
+ */
 @Injectable()
 export class NotificationsService {
-    private expo: Expo;
-
-    constructor(private readonly prisma: PrismaService) {
-        this.expo = new Expo();
+    /** Indica si hay un proveedor de push configurado. */
+    get isEnabled(): boolean {
+        return false;
     }
 
-    /**
-     * Envia una notificación a un usuario especifico buscándolo en la BD
-     */
-    async sendPushNotificationToUser(userId: number, title: string, body: string, data?: any) {
-        const user = await this.prisma.user.findUnique({
-            where: { id: userId },
-            select: { id: true } as any,
-        }) as any;
-
-        if (!user || !user.pushToken) {
-            console.log(`Usuario ${userId} no tiene un Push Token registrado.`);
-            return false;
-        }
-
-        if (!Expo.isExpoPushToken(user.pushToken)) {
-            console.error(`Token Invalido para usuario ${userId}: ${user.pushToken}`);
-            return false;
-        }
-
-        const message: ExpoPushMessage = {
-            to: user.pushToken,
-            sound: 'default',
-            title,
-            body,
-            data: data || {},
-        };
-
-        try {
-            const tickets = await this.expo.sendPushNotificationsAsync([message]);
-            console.log('Push ticket:', tickets);
-            return true;
-        } catch (error) {
-            console.error('Error enviando push notification:', error);
-            return false;
-        }
+    async sendPushNotificationToUser(_userId: number, _title: string, _body: string, _data?: unknown): Promise<boolean> {
+        return false;
     }
 }

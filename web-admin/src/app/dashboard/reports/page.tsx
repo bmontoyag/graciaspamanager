@@ -8,6 +8,8 @@ import {
     PieChart, Pie, Cell, LineChart, Line
 } from 'recharts';
 import { useRouter } from 'next/navigation';
+import { authFetch } from '@/lib/api';
+import { formatMoney } from '@/lib/format';
 
 
 
@@ -50,7 +52,7 @@ export default function ReportsPage() {
 
     const fetchConfiguration = async () => {
         try {
-            const res = await fetch(`${API_URL}/configuration`);
+            const res = await authFetch(`${API_URL}/configuration`);
             if (res.ok) {
                 const config = await res.json();
                 const primary = config.primaryColor || '#8B7355';
@@ -84,9 +86,9 @@ export default function ReportsPage() {
     const fetchFilterOptions = async () => {
         try {
             const [therapistsRes, servicesRes, clientsRes] = await Promise.all([
-                fetch(`${API_URL}/users`),
-                fetch(`${API_URL}/services`),
-                fetch(`${API_URL}/clients`)
+                authFetch(`${API_URL}/users`),
+                authFetch(`${API_URL}/services`),
+                authFetch(`${API_URL}/clients`)
             ]);
 
             setTherapists(await therapistsRes.json());
@@ -109,9 +111,9 @@ export default function ReportsPage() {
             const token = localStorage.getItem('accessToken');
 
             const [attentionsRes, expensesRes, corporateRes] = await Promise.all([
-                fetch(`${API_URL}/attentions`),
-                fetch(`${API_URL}/expenses`),
-                fetch(`${API_URL}/corporate/payments?from=${fromStr}&to=${toStr}`, {
+                authFetch(`${API_URL}/attentions`),
+                authFetch(`${API_URL}/expenses`),
+                authFetch(`${API_URL}/corporate/payments?from=${fromStr}&to=${toStr}`, {
                     headers: token ? { 'Authorization': `Bearer ${token}` } : {}
                 })
             ]);
@@ -283,7 +285,7 @@ export default function ReportsPage() {
                         <select
                             value={selectedMonth}
                             onChange={(e) => setSelectedMonth(e.target.value)}
-                            className="w-full p-2 border rounded-md bg-background"
+                            className="w-full p-2 border rounded-md bg-card"
                         >
                             {Array.from({ length: 12 }, (_, i) => (
                                 <option key={i} value={i}>
@@ -298,7 +300,7 @@ export default function ReportsPage() {
                         <select
                             value={selectedYear}
                             onChange={(e) => setSelectedYear(e.target.value)}
-                            className="w-full p-2 border rounded-md bg-background"
+                            className="w-full p-2 border rounded-md bg-card"
                         >
                             {Array.from({ length: 5 }, (_, i) => {
                                 const year = new Date().getFullYear() - 2 + i;
@@ -312,7 +314,7 @@ export default function ReportsPage() {
                         <select
                             value={selectedTherapist}
                             onChange={(e) => setSelectedTherapist(e.target.value)}
-                            className="w-full p-2 border rounded-md bg-background"
+                            className="w-full p-2 border rounded-md bg-card"
                         >
                             <option value="">Todos</option>
                             {therapists.map(t => (
@@ -326,7 +328,7 @@ export default function ReportsPage() {
                         <select
                             value={selectedService}
                             onChange={(e) => setSelectedService(e.target.value)}
-                            className="w-full p-2 border rounded-md bg-background"
+                            className="w-full p-2 border rounded-md bg-card"
                         >
                             <option value="">Todos</option>
                             {services.map(s => (
@@ -340,7 +342,7 @@ export default function ReportsPage() {
                         <select
                             value={selectedClient}
                             onChange={(e) => setSelectedClient(e.target.value)}
-                            className="w-full p-2 border rounded-md bg-background"
+                            className="w-full p-2 border rounded-md bg-card"
                         >
                             <option value="">Todos</option>
                             {clients.map(c => (
@@ -362,7 +364,7 @@ export default function ReportsPage() {
                                 <span className="text-sm text-muted-foreground">Ingresos</span>
                                 <TrendingUp className="h-4 w-4 text-green-600" />
                             </div>
-                            <p className="text-2xl font-bold text-green-600">S/ {totalIncome.toFixed(2)}</p>
+                            <p className="text-2xl font-bold text-green-600">{formatMoney(totalIncome)}</p>
                         </div>
 
                         <div className="bg-card border rounded-lg p-4 shadow-sm">
@@ -370,7 +372,7 @@ export default function ReportsPage() {
                                 <span className="text-sm text-muted-foreground">Ingresos Corporativos</span>
                                 <TrendingUp className="h-4 w-4 text-green-600" />
                             </div>
-                            <p className="text-2xl font-bold text-green-600">S/ {corporateIncome.toFixed(2)}</p>
+                            <p className="text-2xl font-bold text-green-600">{formatMoney(corporateIncome)}</p>
                         </div>
 
                         <div className="bg-card border rounded-lg p-4 shadow-sm">
@@ -378,7 +380,7 @@ export default function ReportsPage() {
                                 <span className="text-sm text-muted-foreground">Gastos</span>
                                 <DollarSign className="h-4 w-4 text-red-600" />
                             </div>
-                            <p className="text-2xl font-bold text-red-600">S/ {totalExpenses.toFixed(2)}</p>
+                            <p className="text-2xl font-bold text-red-600">{formatMoney(totalExpenses)}</p>
                         </div>
 
                         <div className="bg-card border rounded-lg p-4 shadow-sm">
@@ -387,7 +389,7 @@ export default function ReportsPage() {
                                 <DollarSign className="h-4 w-4" />
                             </div>
                             <p className={`text-2xl font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                S/ {netProfit.toFixed(2)}
+                                {formatMoney(netProfit)}
                             </p>
                         </div>
 
@@ -503,7 +505,7 @@ export default function ReportsPage() {
                                                 <Cell key={`cell-${index}`} fill={configColors.chartPalette[index % configColors.chartPalette.length]} />
                                             ))}
                                         </Pie>
-                                        <Tooltip formatter={(value: any) => `S/ ${Number(value).toFixed(2)}`} />
+                                        <Tooltip formatter={(value: any) => formatMoney(value)} />
                                         <Legend />
                                     </PieChart>
                                 </ResponsiveContainer>
@@ -533,7 +535,7 @@ export default function ReportsPage() {
                                                     <Cell key={`cell-${index}`} fill={configColors.chartPalette[index % configColors.chartPalette.length]} />
                                                 ))}
                                             </Pie>
-                                            <Tooltip formatter={(value: any) => `S/ ${Number(value).toFixed(2)}`} />
+                                            <Tooltip formatter={(value: any) => formatMoney(value)} />
                                             <Legend />
                                         </PieChart>
                                     </ResponsiveContainer>
@@ -568,7 +570,7 @@ export default function ReportsPage() {
                                                 <tr key={service.id} className="border-b hover:bg-muted/50 transition">
                                                     <td className="p-4 font-medium">{service.name}</td>
                                                     <td className="p-4 text-center">{service.count}</td>
-                                                    <td className="p-4 text-right font-mono">S/ {service.revenue.toFixed(2)}</td>
+                                                    <td className="p-4 text-right font-mono">{formatMoney(service.revenue)}</td>
                                                     <td className="p-4 text-right font-mono text-muted-foreground">
                                                         {totalIncome > 0 ? ((service.revenue / totalIncome) * 100).toFixed(1) : 0}%
                                                     </td>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { History, Search, ShieldAlert } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { authFetch } from '@/lib/api';
 
 export default function AuditLogsPage() {
     const [logs, setLogs] = useState<any[]>([]);
@@ -33,7 +34,7 @@ export default function AuditLogsPage() {
 
     const fetchLogs = async () => {
         try {
-            const res = await fetch(`${API_URL}/audit-logs`, {
+            const res = await authFetch(`${API_URL}/audit-logs`, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
                 }
@@ -137,7 +138,7 @@ export default function AuditLogsPage() {
                         placeholder="Buscar por usuario, acción o entidad..."
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2 bg-background border rounded-lg focus:ring-2 focus:ring-primary/50 outline-none transition-shadow"
+                        className="w-full pl-9 pr-4 py-2 bg-card border rounded-lg focus:ring-2 focus:ring-primary/50 outline-none transition-shadow"
                     />
                 </div>
             </div>

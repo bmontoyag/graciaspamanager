@@ -4,8 +4,27 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Gift, Calendar, Users, DollarSign, Clock, CheckCircle, MessageCircle } from 'lucide-react';
+import { authFetch } from '@/lib/api';
+import { formatMoney, formatTime } from '@/lib/format';
+import { APPOINTMENT_STATUS, StatusBadge } from '@/components/ui/status-badge';
+
+const QUICK_LINKS = [
+    { href: '/dashboard/calendar', label: 'Calendario', description: 'Ver citas programadas', icon: Calendar, permission: 'calendar' },
+    { href: '/dashboard/attentions', label: 'Atenciones', description: 'Registrar una atención', icon: CheckCircle, permission: 'attentions' },
+    { href: '/dashboard/clients', label: 'Clientes', description: 'Gestionar clientes', icon: Users, permission: 'clients' },
+    { href: '/dashboard/daily-closing', label: 'Cierre Diario', description: 'Revisar ventas del día', icon: DollarSign, permission: 'daily_closing' },
+];
 
 export default function DashboardPage() {
+    const [permissions] = useState<string[]>(() => {
+        if (typeof window === 'undefined') return [];
+        try {
+            return JSON.parse(localStorage.getItem('userPermissions') || '[]');
+        } catch {
+            return [];
+        }
+    });
+    const canAccess = (key: string) => permissions.includes('all') || permissions.includes(key);
     const [role, setRole] = useState<string | null>(null);
     const [stats, setStats] = useState({
         salesToday: 0,
@@ -50,7 +69,7 @@ export default function DashboardPage() {
         }
 
         // Fetch Stats
-        fetch(`${API_URL}/dashboard/stats`, { headers })
+        authFetch(`${API_URL}/dashboard/stats`, { headers })
             .then(res => {
                 if (!res.ok) {
                     console.error('Stats fetch failed:', res.status, res.statusText);
@@ -65,7 +84,7 @@ export default function DashboardPage() {
             });
 
         // Fetch Configuration for Birthday Message
-        fetch(`${API_URL}/configuration`, { headers })
+        authFetch(`${API_URL}/configuration`, { headers })
             .then(res => res.json())
             .then(config => {
                 if (config && config.birthdayMessage) {
@@ -75,7 +94,7 @@ export default function DashboardPage() {
             .catch(err => console.error('Error fetching config for birthday msg:', err));
 
         // Fetch Today's Appointments
-        fetch(`${API_URL}/dashboard/appointments`, { headers })
+        authFetch(`${API_URL}/dashboard/appointments`, { headers })
             .then(res => {
                 if (!res.ok) throw new Error('Failed to fetch appointments');
                 return res.json();
@@ -84,7 +103,7 @@ export default function DashboardPage() {
             .catch(err => console.error('Error fetching appointments:', err));
 
         // Fetch Clients for Birthdays
-        fetch(`${API_URL}/clients`, { headers })
+        authFetch(`${API_URL}/clients`, { headers })
             .then(res => res.json())
             .then(clients => {
                 if (Array.isArray(clients)) {
@@ -142,14 +161,14 @@ export default function DashboardPage() {
                 {/* Hoy */}
                 <div className="bg-card border rounded-lg p-6 shadow-sm">
                     <p className="text-sm text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Ingresos Hoy</p>
-                    <p className="text-3xl font-bold text-green-600">S/. {stats.salesToday.toLocaleString()}</p>
+                    <p className="text-3xl font-bold text-green-600">{formatMoney(stats.salesToday)}</p>
                     {(stats.corporateToday || 0) > 0 && (
-                        <p className="text-sm text-muted-foreground mt-1">+ Corporativos: S/. {stats.corporateToday.toLocaleString()}</p>
+                        <p className="text-sm text-muted-foreground mt-1">+ Corporativos: {formatMoney(stats.corporateToday)}</p>
                     )}
                 </div>
                 <div className="bg-card border rounded-lg p-6 shadow-sm">
                     <p className="text-sm text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Gastos Hoy</p>
-                    <p className="text-3xl font-bold text-red-600">S/. {stats.expensesToday.toLocaleString()}</p>
+                    <p className="text-3xl font-bold text-red-600">{formatMoney(stats.expensesToday)}</p>
                 </div>
                 <div className="bg-card border rounded-lg p-6 shadow-sm">
                     <p className="text-sm text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Citas Hoy</p>
@@ -163,19 +182,19 @@ export default function DashboardPage() {
                 {/* Mes */}
                 <div className="bg-card border rounded-lg p-6 shadow-sm">
                     <p className="text-sm text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Ingresos Mes</p>
-                    <p className="text-3xl font-bold text-green-700">S/. {stats.salesMonth.toLocaleString()}</p>
+                    <p className="text-3xl font-bold text-green-700">{formatMoney(stats.salesMonth)}</p>
                     {(stats.corporateMonth || 0) > 0 && (
-                        <p className="text-sm text-muted-foreground mt-1">+ Corporativos: S/. {stats.corporateMonth.toLocaleString()}</p>
+                        <p className="text-sm text-muted-foreground mt-1">+ Corporativos: {formatMoney(stats.corporateMonth)}</p>
                     )}
                 </div>
                 <div className="bg-card border rounded-lg p-6 shadow-sm">
                     <p className="text-sm text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Gastos Mes</p>
-                    <p className="text-3xl font-bold text-red-700">S/. {stats.expensesMonth.toLocaleString()}</p>
+                    <p className="text-3xl font-bold text-red-700">{formatMoney(stats.expensesMonth)}</p>
                 </div>
                 <div className="bg-card border rounded-lg p-6 shadow-sm sm:col-span-2 lg:col-span-2 flex flex-col justify-center">
                     <p className="text-sm text-primary mb-1 uppercase tracking-wider font-bold">Utilidad Neta Mensual</p>
                     <p className={`text-4xl font-black ${stats.salesMonth + (stats.corporateMonth || 0) - stats.expensesMonth >= 0 ? 'text-primary' : 'text-red-600'}`}>
-                        S/. {(stats.salesMonth + (stats.corporateMonth || 0) - stats.expensesMonth).toLocaleString()}
+                        {formatMoney((stats.salesMonth + (stats.corporateMonth || 0) - stats.expensesMonth))}
                     </p>
                 </div>
             </div>
@@ -212,22 +231,13 @@ export default function DashboardPage() {
                                 {appointments.map((appt: any) => (
                                     <tr key={appt.id} className="border-b last:border-0 hover:bg-muted/50 transition">
                                         <td className="p-3 font-medium whitespace-nowrap">
-                                            {new Date(appt.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            {formatTime(appt.date)}
                                         </td>
                                         <td className="p-3 font-medium">{appt.client?.name || 'Cliente sin nombre'}</td>
                                         <td className="p-3">{appt.service?.name || '—'}</td>
-                                        <td className="p-3">{appt.worker?.name || '—'}</td>
+                                        <td className="p-3">{appt.workers?.length ? appt.workers.map((w: any) => w.worker?.name).filter(Boolean).join(', ') : appt.worker?.name || '-'}</td>
                                         <td className="p-3">
-                                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${appt.status === 'CONFIRMED' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                                                appt.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                                                    appt.status === 'COMPLETED' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
-                                                        'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
-                                                }`}>
-                                                {appt.status === 'PENDING' ? 'Pendiente' :
-                                                    appt.status === 'CONFIRMED' ? 'Confirmada' :
-                                                        appt.status === 'COMPLETED' ? 'Completada' :
-                                                            appt.status === 'CANCELLED' ? 'Cancelada' : appt.status}
-                                            </span>
+                                            <StatusBadge tone={APPOINTMENT_STATUS[appt.status]?.tone}>{APPOINTMENT_STATUS[appt.status]?.label || appt.status}</StatusBadge>
                                         </td>
                                     </tr>
                                 ))}
@@ -289,27 +299,16 @@ export default function DashboardPage() {
             <div className="bg-card border rounded-lg p-6">
                 <h2 className="text-xl font-bold mb-4">Accesos Rápidos</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <button
-                        onClick={() => router.push('/dashboard/calendar')}
-                        className="p-4 bg-primary/10 hover:bg-primary/20 rounded-md text-left transition"
-                    >
-                        <p className="font-semibold">📅 Calendario</p>
-                        <p className="text-sm text-muted-foreground">Ver citas programadas</p>
-                    </button>
-                    <button
-                        onClick={() => router.push('/dashboard/clients')}
-                        className="p-4 bg-primary/10 hover:bg-primary/20 rounded-md text-left transition"
-                    >
-                        <p className="font-semibold">👥 Clientes</p>
-                        <p className="text-sm text-muted-foreground">Gestionar clientes</p>
-                    </button>
-                    <button
-                        onClick={() => router.push('/dashboard/daily-closing')}
-                        className="p-4 bg-primary/10 hover:bg-primary/20 rounded-md text-left transition"
-                    >
-                        <p className="font-semibold">💰 Cierre Diario</p>
-                        <p className="text-sm text-muted-foreground">Revisar ventas del día</p>
-                    </button>
+                    {QUICK_LINKS.filter(link => canAccess(link.permission)).map(link => (
+                        <button
+                            key={link.href}
+                            onClick={() => router.push(link.href)}
+                            className="p-4 bg-primary/10 hover:bg-primary/20 rounded-md text-left transition"
+                        >
+                            <p className="font-semibold flex items-center gap-2"><link.icon className="h-4 w-4" /> {link.label}</p>
+                            <p className="text-sm text-muted-foreground">{link.description}</p>
+                        </button>
+                    ))}
                 </div>
             </div>
         </PageContainer>

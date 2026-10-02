@@ -2,7 +2,9 @@ import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/commo
 import { BlockedSlotsService } from './blocked-slots.service';
 import { CreateBlockedSlotDto } from './dto/create-blocked-slot.dto';
 import { UpdateBlockedSlotDto } from './dto/update-blocked-slot.dto';
+import { RequirePermissions } from '../auth/permissions.decorator';
 
+@RequirePermissions('settings')
 @Controller('blocked-slots')
 export class BlockedSlotsController {
   constructor(private readonly blockedSlotsService: BlockedSlotsService) {}
@@ -12,11 +14,13 @@ export class BlockedSlotsController {
     return this.blockedSlotsService.create(createBlockedSlotDto);
   }
 
+  @RequirePermissions('settings', 'calendar')
   @Get()
   findAll() {
     return this.blockedSlotsService.findAll();
   }
 
+  @RequirePermissions('settings', 'calendar')
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.blockedSlotsService.findOne(+id);

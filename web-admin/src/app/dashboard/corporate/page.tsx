@@ -10,6 +10,7 @@ import CompanyDialog from '@/components/corporate/CompanyDialog';
 import IssuerDialog from '@/components/corporate/IssuerDialog';
 import { apiFetch } from '@/lib/api';
 import { EVENT_STATUS, QUOTE_STATUS, displayQuoteStatus, formatDay, formatMoney, isQuoteExpired } from '@/lib/corporate';
+import { confirmDialog } from '@/components/ui/confirm-dialog';
 
 type Tab = 'quotes' | 'events' | 'companies';
 
@@ -55,7 +56,7 @@ export default function CorporatePage() {
     };
 
     const handleDeleteQuote = async (quote: any) => {
-        if (!confirm(`¿Eliminar la cotización ${quote.code}?`)) return;
+        if (!await confirmDialog(`¿Eliminar la cotización ${quote.code}?`)) return;
         try {
             await apiFetch(`/corporate/quotes/${quote.id}`, { method: 'DELETE' });
             toast.success('Cotización eliminada');
@@ -66,7 +67,7 @@ export default function CorporatePage() {
     };
 
     const handleDeleteCompany = async (company: any) => {
-        if (!confirm(`¿Eliminar la empresa ${company.name}?`)) return;
+        if (!await confirmDialog(`¿Eliminar la empresa ${company.name}?`)) return;
         try {
             await apiFetch(`/companies/${company.id}`, { method: 'DELETE' });
             toast.success('Empresa eliminada');
@@ -160,7 +161,7 @@ export default function CorporatePage() {
                     <input
                         type="text"
                         placeholder="Buscar..."
-                        className="bg-background border rounded-md pl-9 pr-3 py-2 w-full outline-none focus:ring-1 focus:ring-primary/50 text-sm"
+                        className="bg-card border rounded-md pl-9 pr-3 py-2 w-full outline-none focus:ring-1 focus:ring-primary/50 text-sm"
                         value={filter}
                         onChange={(e) => setFilter(e.target.value)}
                     />
@@ -171,7 +172,7 @@ export default function CorporatePage() {
                         <select
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
-                            className="bg-background border rounded-md px-2 py-1.5 text-sm outline-none w-full sm:w-[150px]"
+                            className="bg-card border rounded-md px-2 py-1.5 text-sm outline-none w-full sm:w-[150px]"
                         >
                             <option value="all">Todos</option>
                             {Object.entries(statusOptions).map(([key, s]) => (
@@ -219,11 +220,11 @@ export default function CorporatePage() {
                                             <td className="p-4 text-right font-mono">{formatMoney(q.total)}</td>
                                             <td className="p-4 text-right" onClick={e => e.stopPropagation()}>
                                                 <div className="flex justify-end gap-2">
-                                                    <Link href={`/dashboard/corporate/quotes/${q.id}`} className="p-2 hover:bg-accent rounded">
+                                                    <Link href={`/dashboard/corporate/quotes/${q.id}`} className="p-2 hover:bg-accent rounded" aria-label="Editar">
                                                         <Edit className="h-4 w-4" />
                                                     </Link>
                                                     {!q.event && (
-                                                        <button onClick={() => handleDeleteQuote(q)} className="p-2 hover:bg-accent rounded text-red-600">
+                                                        <button onClick={() => handleDeleteQuote(q)} className="p-2 hover:bg-accent rounded text-red-600" aria-label="Eliminar">
                                                             <Trash2 className="h-4 w-4" />
                                                         </button>
                                                     )}
@@ -303,10 +304,10 @@ export default function CorporatePage() {
                                         <td className="p-4 text-center">{c._count?.events ?? 0}</td>
                                         <td className="p-4 text-right">
                                             <div className="flex justify-end gap-2">
-                                                <button onClick={() => { setSelectedCompany(c); setIsCompanyDialogOpen(true); }} className="p-2 hover:bg-accent rounded">
+                                                <button onClick={() => { setSelectedCompany(c); setIsCompanyDialogOpen(true); }} className="p-2 hover:bg-accent rounded" aria-label="Editar">
                                                     <Edit className="h-4 w-4" />
                                                 </button>
-                                                <button onClick={() => handleDeleteCompany(c)} className="p-2 hover:bg-accent rounded text-red-600">
+                                                <button onClick={() => handleDeleteCompany(c)} className="p-2 hover:bg-accent rounded text-red-600" aria-label="Eliminar">
                                                     <Trash2 className="h-4 w-4" />
                                                 </button>
                                             </div>

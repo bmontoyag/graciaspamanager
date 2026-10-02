@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { Gift, Award, CheckCircle, Search, RefreshCw } from 'lucide-react';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { toast } from 'sonner';
+import { authFetch } from '@/lib/api';
+import { confirmDialog } from '@/components/ui/confirm-dialog';
 
 interface Client {
     id: number;
@@ -24,7 +26,7 @@ export default function LoyaltyPage() {
 
     const fetchClients = () => {
         setLoading(true);
-        fetch(`${API_URL}/clients`)
+        authFetch(`${API_URL}/clients`)
             .then((res) => res.json())
             .then((data) => {
                 const arr = Array.isArray(data) ? data : [];
@@ -45,13 +47,13 @@ export default function LoyaltyPage() {
     }, []);
 
     const handleRedeem = async (client: Client) => {
-        if (!confirm(`¿Estás seguro de canjear ${REDEEM_COST} puntos de ${client.name} por una promoción?`)) return;
+        if (!await confirmDialog(`¿Estás seguro de canjear ${REDEEM_COST} puntos de ${client.name} por una promoción?`)) return;
 
         setRedeemingId(client.id);
 
         try {
             const newPoints = (client.loyaltyPoints || 0) - REDEEM_COST;
-            const res = await fetch(`${API_URL}/clients/${client.id}`, {
+            const res = await authFetch(`${API_URL}/clients/${client.id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ loyaltyPoints: newPoints })
@@ -75,10 +77,10 @@ export default function LoyaltyPage() {
     });
 
     const handleSync = async () => {
-        if (!confirm('¿Desea escanear el historial completo y recalcular los puntos de todos los pacientes? Dependiendo de la cantidad de atenciones, esto puede tardar unos segundos.')) return;
+        if (!await confirmDialog('¿Desea escanear el historial completo y recalcular los puntos de todos los pacientes? Dependiendo de la cantidad de atenciones, esto puede tardar unos segundos.')) return;
         setSyncing(true);
         try {
-            const res = await fetch(`${API_URL}/clients/sync-loyalty`, {
+            const res = await authFetch(`${API_URL}/clients/sync-loyalty`, {
                 method: 'POST'
             });
             if (!res.ok) throw new Error('Error en sincronización');
@@ -123,7 +125,7 @@ export default function LoyaltyPage() {
                             placeholder="Buscar paciente por nombre o teléfono..."
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
-                            className="w-full pl-9 pr-4 py-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-amber-500"
+                            className="w-full pl-9 pr-4 py-2 text-sm border rounded-md bg-card focus:outline-none focus:ring-2 focus:ring-amber-500"
                         />
                     </div>
                     <div className="flex bg-amber-100 text-amber-800 px-4 py-2 rounded-md items-center gap-2 w-full md:w-auto font-medium">

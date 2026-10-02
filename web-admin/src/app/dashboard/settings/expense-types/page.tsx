@@ -5,6 +5,8 @@ import { Plus, Trash2, Edit2, Save, X } from 'lucide-react';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { authFetch } from '@/lib/api';
+import { confirmDialog } from '@/components/ui/confirm-dialog';
 
 export default function ExpenseTypesPage() {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -17,7 +19,7 @@ export default function ExpenseTypesPage() {
         setLoading(true);
         try {
             const token = localStorage.getItem('accessToken');
-            const res = await fetch(`${API_URL}/expense-types`, {
+            const res = await authFetch(`${API_URL}/expense-types`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await res.json();
@@ -42,7 +44,7 @@ export default function ExpenseTypesPage() {
             : `${API_URL}/expense-types`;
         
         try {
-            const res = await fetch(url, {
+            const res = await authFetch(url, {
                 method: isEditing ? 'PATCH' : 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -65,10 +67,10 @@ export default function ExpenseTypesPage() {
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm('¿Estás seguro de eliminar este tipo?')) return;
+        if (!await confirmDialog('¿Estás seguro de eliminar este tipo?')) return;
         const token = localStorage.getItem('accessToken');
         try {
-            const res = await fetch(`${API_URL}/expense-types/${id}`, {
+            const res = await authFetch(`${API_URL}/expense-types/${id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -99,7 +101,7 @@ export default function ExpenseTypesPage() {
                                 type="text"
                                 value={formData.name}
                                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                className="w-full p-2 border rounded-md bg-background"
+                                className="w-full p-2 border rounded-md bg-card"
                                 required
                             />
                         </div>
@@ -108,7 +110,7 @@ export default function ExpenseTypesPage() {
                             <textarea
                                 value={formData.description}
                                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                className="w-full p-2 border rounded-md bg-background h-24"
+                                className="w-full p-2 border rounded-md bg-card h-24"
                             />
                         </div>
                         <div className="flex gap-2">
@@ -124,6 +126,7 @@ export default function ExpenseTypesPage() {
                                         setIsEditing(null);
                                         setFormData({ name: '', description: '' });
                                     }}
+                                    aria-label="Cerrar"
                                 >
                                     <X className="h-4 w-4" />
                                 </Button>
@@ -158,12 +161,14 @@ export default function ExpenseTypesPage() {
                                                         setFormData({ name: type.name, description: type.description || '' });
                                                     }}
                                                     className="p-1 hover:text-primary transition-colors"
+                                                    aria-label="Editar"
                                                 >
                                                     <Edit2 className="h-4 w-4" />
                                                 </button>
                                                 <button
                                                     onClick={() => handleDelete(type.id)}
                                                     className="p-1 hover:text-destructive transition-colors"
+                                                    aria-label="Eliminar"
                                                 >
                                                     <Trash2 className="h-4 w-4" />
                                                 </button>

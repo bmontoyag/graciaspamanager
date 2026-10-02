@@ -3,6 +3,9 @@
 import { useState, useEffect } from 'react';
 import { X, UserPlus, PlusCircle, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { authFetch } from '@/lib/api';
+import { formatMoney } from '@/lib/format';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface AttentionDialogProps {
     isOpen: boolean;
@@ -63,10 +66,10 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
 
     const loadAll = () =>
         Promise.all([
-            fetch(`${API_URL}/clients`).then(r => r.json()),
-            fetch(`${API_URL}/services`).then(r => r.json()),
-            fetch(`${API_URL}/users`).then(r => r.json()),
-            fetch(`${API_URL}/appointments`).then(r => r.json()),
+            authFetch(`${API_URL}/clients`).then(r => r.json()),
+            authFetch(`${API_URL}/services`).then(r => r.json()),
+            authFetch(`${API_URL}/users`).then(r => r.json()),
+            authFetch(`${API_URL}/appointments`).then(r => r.json()),
         ]).then(([c, s, u, a]) => {
             setClients(Array.isArray(c) ? c : []);
             setServices(Array.isArray(s) ? s : []);
@@ -78,7 +81,7 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
         if (!isOpen) return;
         loadAll().catch(console.error);
 
-        fetch(`${API_URL}/configuration`).then(r => r.json()).then(conf => {
+        authFetch(`${API_URL}/configuration`).then(r => r.json()).then(conf => {
             if (conf.discoverySources) setDiscoverySources(conf.discoverySources);
         }).catch(console.error);
 
@@ -112,7 +115,7 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
 
         if (name === 'appointmentId') {
             if (value) {
-                fetch(`${API_URL}/appointments/${value}`)
+                authFetch(`${API_URL}/appointments/${value}`)
                     .then(r => r.json())
                     .then(apt => {
                         const totalAdvance = apt.payments
@@ -192,7 +195,7 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
         if (!newClient.name.trim()) { toast.error('El nombre es requerido'); return; }
         setCreatingClient(true);
         try {
-            const res = await fetch(`${API_URL}/clients`, {
+            const res = await authFetch(`${API_URL}/clients`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     name: newClient.name.trim(),
@@ -217,7 +220,7 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
         if (!newService.name.trim() || !newService.price) { toast.error('Nombre y precio son requeridos'); return; }
         setCreatingService(true);
         try {
-            const res = await fetch(`${API_URL}/services`, {
+            const res = await authFetch(`${API_URL}/services`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: newService.name.trim(), price: Number(newService.price), durationMin: Number(newService.durationMin) || 60 })
             });
@@ -271,7 +274,7 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
                 };
             }
 
-            const res = await fetch(url, {
+            const res = await authFetch(url, {
                 method: attention ? 'PATCH' : 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(finalPayload)
@@ -285,19 +288,17 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
         } catch (e: any) { toast.error(e.message || 'Error al guardar'); }
     };
 
-    if (!isOpen) return null;
 
     const selectedClient = clients.find(c => String(c.id) === formData.clientId);
     const filteredApts = appointments.filter(a => a.clientId === Number(formData.clientId) && a.status !== 'CANCELLED');
     const displayTotalCost = formData.services.reduce((sum, s) => sum + (Number(s.totalCost) || 0), 0);
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-background p-6 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                <div className="flex justify-between items-center mb-5">
-                    <h2 className="text-xl font-bold">{attention ? 'Editar Atención' : 'Nueva Atención'}</h2>
-                    <button onClick={onClose}><X className="h-5 w-5" /></button>
-                </div>
+        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+            <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle>{attention ? 'Editar Atención' : 'Nueva Atención'}</DialogTitle>
+                </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="space-y-5">
 
@@ -318,15 +319,15 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
                                 <p className="text-xs font-semibold text-primary">Crear nuevo cliente</p>
                                 <div className="grid grid-cols-2 gap-2">
                                     <input type="text" placeholder="Nombre *" value={newClient.name} onChange={e => setNewClient(p => ({ ...p, name: e.target.value }))}
-                                        className="col-span-2 p-2 text-sm border rounded-md bg-background" autoFocus />
+                                        className="col-span-2 p-2 text-sm border rounded-md bg-card" autoFocus />
                                     <input type="tel" placeholder="Teléfono" value={newClient.phone} onChange={e => setNewClient(p => ({ ...p, phone: e.target.value }))}
-                                        className="p-2 text-sm border rounded-md bg-background" />
+                                        className="p-2 text-sm border rounded-md bg-card" />
                                     <input type="email" placeholder="Email" value={newClient.email} onChange={e => setNewClient(p => ({ ...p, email: e.target.value }))}
-                                        className="p-2 text-sm border rounded-md bg-background" />
+                                        className="p-2 text-sm border rounded-md bg-card" />
                                     <input type="date" title="Fecha de Nacimiento" value={newClient.birthday} onChange={e => setNewClient(p => ({ ...p, birthday: e.target.value }))}
-                                        className="col-span-2 p-2 text-sm border rounded-md bg-background text-muted-foreground" />
+                                        className="col-span-2 p-2 text-sm border rounded-md bg-card text-muted-foreground" />
                                     <select title="¿De dónde nos conoció?" value={newClient.discoverySource} onChange={e => setNewClient(p => ({ ...p, discoverySource: e.target.value }))}
-                                        className="col-span-2 p-2 text-sm border rounded-md bg-background text-muted-foreground">
+                                        className="col-span-2 p-2 text-sm border rounded-md bg-card text-muted-foreground">
                                         <option value="">¿De dónde nos conoció? (Opcional)</option>
                                         {discoverySources.map((s, i) => <option key={i} value={s}>{s}</option>)}
                                     </select>
@@ -340,9 +341,9 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
                         ) : (
                             <div className="space-y-1">
                                 <input type="text" placeholder="Buscar cliente..." value={clientSearch} onChange={e => setClientSearch(e.target.value)}
-                                    className="w-full p-2 text-sm border rounded-md bg-background" />
+                                    className="w-full p-2 text-sm border rounded-md bg-card" />
                                 <select name="clientId" value={formData.clientId} onChange={handleChange}
-                                    className="w-full p-2 border rounded-md bg-background" required>
+                                    className="w-full p-2 border rounded-md bg-card" required>
                                     <option value="">Seleccionar cliente ({filteredClients.length})</option>
                                     {filteredClients.map(c => <option key={c.id} value={c.id}>{c.name}{c.phone ? ` · ${c.phone}` : ''}</option>)}
                                 </select>
@@ -375,11 +376,12 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
                                                     <p className="text-xs text-muted-foreground">Terapistas: {wrks.map(w => w.name).join(', ')}</p>
                                                 </div>
                                                 <div className="flex items-center gap-4">
-                                                    <p className="font-semibold text-primary">S/ {Number(item.totalCost).toFixed(2)}</p>
+                                                    <p className="font-semibold text-primary">{formatMoney(Number(item.totalCost))}</p>
                                                     <button 
                                                         type="button" 
                                                         onClick={() => handleRemoveService(index)}
                                                         className="text-destructive hover:bg-destructive/10 p-1.5 rounded-full"
+                                                        aria-label="Cerrar"
                                                     >
                                                         <X className="h-4 w-4" />
                                                     </button>
@@ -389,18 +391,18 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
                                     })}
                                     <div className="flex justify-between items-center px-2 pt-2 border-t">
                                         <p className="font-medium text-sm">Costo Total:</p>
-                                        <p className="font-bold text-lg text-primary">S/ {displayTotalCost.toFixed(2)}</p>
+                                        <p className="font-bold text-lg text-primary">{formatMoney(displayTotalCost)}</p>
                                     </div>
 
                                     {advanceAmount > 0 && (
                                         <div className="space-y-1 mt-2 pt-2 border-t px-2 border-dashed border-yellow-500/30">
                                             <div className="flex justify-between items-center text-yellow-600 dark:text-yellow-500 font-medium">
                                                 <p className="text-xs italic">Adelanto registrado:</p>
-                                                <p className="text-sm">- S/ {advanceAmount.toFixed(2)}</p>
+                                                <p className="text-sm">- {formatMoney(advanceAmount)}</p>
                                             </div>
                                             <div className="flex justify-between items-center text-primary font-bold">
                                                 <p className="text-sm uppercase">Saldo a cobrar:</p>
-                                                <p className="text-xl">S/ {(displayTotalCost - advanceAmount).toFixed(2)}</p>
+                                                <p className="text-xl">{formatMoney((displayTotalCost - advanceAmount))}</p>
                                             </div>
                                         </div>
                                     )}
@@ -414,11 +416,11 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
                                 <p className="text-xs font-semibold text-emerald-600">Crear nuevo servicio</p>
                                 <div className="grid grid-cols-3 gap-2">
                                     <input type="text" placeholder="Nombre *" value={newService.name} onChange={e => setNewService(p => ({ ...p, name: e.target.value }))}
-                                        className="col-span-1 p-2 text-sm border rounded-md bg-background" autoFocus />
+                                        className="col-span-1 p-2 text-sm border rounded-md bg-card" autoFocus />
                                     <input type="number" placeholder="Precio S/ *" value={newService.price} onChange={e => setNewService(p => ({ ...p, price: e.target.value }))}
-                                        className="p-2 text-sm border rounded-md bg-background" step="0.01" min="0" />
+                                        className="p-2 text-sm border rounded-md bg-card" step="0.01" min="0" />
                                     <input type="number" placeholder="Duración (min)" value={newService.durationMin} onChange={e => setNewService(p => ({ ...p, durationMin: e.target.value }))}
-                                        className="p-2 text-sm border rounded-md bg-background" min="1" />
+                                        className="p-2 text-sm border rounded-md bg-card" min="1" />
                                 </div>
                                 <button type="button" onClick={handleCreateService} disabled={creatingService || !newService.name.trim() || !newService.price}
                                     className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white rounded-md hover:opacity-90 disabled:opacity-50">
@@ -430,18 +432,18 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
                             <div className="space-y-4">
                                 <div>
                                     <input type="text" placeholder="Buscar servicio..." value={serviceSearch} onChange={e => setServiceSearch(e.target.value)}
-                                        className="w-full p-2 mb-2 text-sm border rounded-md bg-background" />
+                                        className="w-full p-2 mb-2 text-sm border rounded-md bg-card" />
                                     <select name="serviceId" value={currentServiceId} onChange={handleCurrentServiceChange}
-                                        className="w-full p-2 border rounded-md bg-background">
+                                        className="w-full p-2 border rounded-md bg-card">
                                         <option value="">Seleccionar servicio ({filteredServices.length})</option>
-                                        {filteredServices.map(s => <option key={s.id} value={s.id}>{s.name} — S/ {s.price}</option>)}
+                                        {filteredServices.map(s => <option key={s.id} value={s.id}>{s.name} — {formatMoney(s.price)}</option>)}
                                     </select>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-xs font-semibold mb-1">Costo (S/)</label>
                                         <input type="number" name="totalCost" value={currentTotalCost} onChange={e => setCurrentTotalCost(e.target.value)}
-                                            className="w-full p-2 text-sm border rounded-md bg-background" step="0.01" />
+                                            className="w-full p-2 text-sm border rounded-md bg-card" step="0.01" />
                                     </div>
                                     <div>
                                         <label className="block text-xs font-semibold mb-1">Personal Asignado *</label>
@@ -467,7 +469,7 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
                     {formData.clientId && (
                         <div>
                             <label className="block text-sm font-semibold mb-1">Cita Asociada <span className="font-normal text-muted-foreground">(Opcional)</span></label>
-                            <select name="appointmentId" value={formData.appointmentId} onChange={handleChange} className="w-full p-2 border rounded-md bg-background">
+                            <select name="appointmentId" value={formData.appointmentId} onChange={handleChange} className="w-full p-2 border rounded-md bg-card">
                                 <option value="">Sin cita asociada</option>
                                 {filteredApts.map(a => (
                                     <option key={a.id} value={a.id}>
@@ -482,14 +484,14 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
                     <div>
                         <label className="block text-sm font-semibold mb-1">Fecha</label>
                         <input type="date" name="date" value={formData.date} onChange={handleChange}
-                            className="w-full p-2 border rounded-md bg-background" required />
+                            className="w-full p-2 border rounded-md bg-card" required />
                     </div>
 
                     {/* ══ NOTAS ══ */}
                     <div>
                         <label className="block text-sm font-semibold mb-1">Notas</label>
                         <textarea name="notes" value={formData.notes} onChange={handleChange}
-                            className="w-full p-2 border rounded-md bg-background" rows={3} />
+                            className="w-full p-2 border rounded-md bg-card" rows={3} />
                     </div>
 
                     <div className="flex justify-end gap-2 pt-2">
@@ -499,7 +501,7 @@ export default function AttentionDialog({ isOpen, onClose, onSave, attention }: 
                         </button>
                     </div>
                 </form>
-            </div>
-        </div>
+            </DialogContent>
+        </Dialog>
     );
 }

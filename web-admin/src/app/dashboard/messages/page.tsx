@@ -5,6 +5,7 @@ import { Save, MessageCircle, Plus, X, Wand2, Facebook, Instagram, Music2, Share
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { authFetch } from '@/lib/api';
 
 export default function MessagesSettingsPage() {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -38,7 +39,7 @@ export default function MessagesSettingsPage() {
 
     const loadConfiguration = async () => {
         try {
-            const res = await fetch(`${API_URL}/configuration`);
+            const res = await authFetch(`${API_URL}/configuration`);
             if (res.ok) {
                 const config = await res.json();
                 if (config.birthdayMessage) setBirthdayMessage(config.birthdayMessage);
@@ -90,7 +91,7 @@ export default function MessagesSettingsPage() {
             };
 
             const token = localStorage.getItem('accessToken');
-            const res = await fetch(`${API_URL}/configuration`, {
+            const res = await authFetch(`${API_URL}/configuration`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -142,7 +143,7 @@ export default function MessagesSettingsPage() {
                             <textarea
                                 value={whatsappMessageTemplate}
                                 onChange={(e) => { setWhatsappMessageTemplate(e.target.value); handleChange(); }}
-                                className="w-full h-24 p-2 text-sm border rounded-md bg-background resize-none focus:ring-1 focus:ring-primary focus:border-primary"
+                                className="w-full h-24 p-2 text-sm border rounded-md bg-card resize-none focus:ring-1 focus:ring-primary focus:border-primary"
                                 placeholder="Escribe el mensaje de confirmación..."
                             />
                             <p className="text-xs text-muted-foreground mt-1">
@@ -154,7 +155,7 @@ export default function MessagesSettingsPage() {
                             <textarea
                                 value={birthdayMessage}
                                 onChange={(e) => { setBirthdayMessage(e.target.value); handleChange(); }}
-                                className="w-full h-24 p-2 text-sm border rounded-md bg-background resize-none focus:ring-1 focus:ring-primary focus:border-primary"
+                                className="w-full h-24 p-2 text-sm border rounded-md bg-card resize-none focus:ring-1 focus:ring-primary focus:border-primary"
                                 placeholder="Escribe el mensaje de cumpleaños..."
                             />
                             <p className="text-xs text-muted-foreground mt-1">
@@ -166,7 +167,7 @@ export default function MessagesSettingsPage() {
                             <textarea
                                 value={marketingMessage}
                                 onChange={(e) => { setMarketingMessage(e.target.value); handleChange(); }}
-                                className="w-full h-24 p-2 text-sm border rounded-md bg-background resize-none focus:ring-1 focus:ring-primary focus:border-primary"
+                                className="w-full h-24 p-2 text-sm border rounded-md bg-card resize-none focus:ring-1 focus:ring-primary focus:border-primary"
                                 placeholder="Escribe el mensaje de marketing..."
                             />
                             <p className="text-xs text-muted-foreground mt-1">
@@ -191,7 +192,7 @@ export default function MessagesSettingsPage() {
                                 type="text"
                                 value={facebookUrl || ''}
                                 onChange={(e) => { setFacebookUrl(e.target.value); handleChange(); }}
-                                className="w-full p-2 text-sm border rounded-md bg-background"
+                                className="w-full p-2 text-sm border rounded-md bg-card"
                                 placeholder="https://facebook.com/..."
                             />
                         </div>
@@ -203,7 +204,7 @@ export default function MessagesSettingsPage() {
                                 type="text"
                                 value={instagramUrl || ''}
                                 onChange={(e) => { setInstagramUrl(e.target.value); handleChange(); }}
-                                className="w-full p-2 text-sm border rounded-md bg-background"
+                                className="w-full p-2 text-sm border rounded-md bg-card"
                                 placeholder="https://instagram.com/..."
                             />
                         </div>
@@ -215,7 +216,7 @@ export default function MessagesSettingsPage() {
                                 type="text"
                                 value={tiktokUrl || ''}
                                 onChange={(e) => { setTiktokUrl(e.target.value); handleChange(); }}
-                                className="w-full p-2 text-sm border rounded-md bg-background"
+                                className="w-full p-2 text-sm border rounded-md bg-card"
                                 placeholder="https://tiktok.com/@..."
                             />
                         </div>
@@ -227,7 +228,7 @@ export default function MessagesSettingsPage() {
                                 type="text"
                                 value={whatsappUrl || ''}
                                 onChange={(e) => { setWhatsappUrl(e.target.value); handleChange(); }}
-                                className="w-full p-2 text-sm border rounded-md bg-background"
+                                className="w-full p-2 text-sm border rounded-md bg-card"
                                 placeholder="https://wa.me/..."
                             />
                         </div>
@@ -247,7 +248,7 @@ export default function MessagesSettingsPage() {
                                 type="number"
                                 value={loyaltyPointsToRedeem}
                                 onChange={(e) => { setLoyaltyPointsToRedeem(parseInt(e.target.value)); handleChange(); }}
-                                className="w-full p-2 text-sm border rounded-md bg-background"
+                                className="w-full p-2 text-sm border rounded-md bg-card"
                                 min="1"
                             />
                             <span className="text-xs text-muted-foreground whitespace-nowrap">puntos</span>
@@ -275,7 +276,7 @@ export default function MessagesSettingsPage() {
                                 onChange={(e) => setNewSource(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && addSource()}
                                 placeholder="Añadir nueva fuente (ej. TikTok)"
-                                className="flex-1 p-2 text-sm border rounded-md bg-background focus:ring-1 focus:ring-primary focus:border-primary"
+                                className="flex-1 p-2 text-sm border rounded-md bg-card focus:ring-1 focus:ring-primary focus:border-primary"
                             />
                             <Button type="button" onClick={addSource} variant="outline" className="gap-1">
                                 <Plus className="h-4 w-4" /> Agregar
@@ -288,6 +289,7 @@ export default function MessagesSettingsPage() {
                                     <button
                                         onClick={() => removeSource(source)}
                                         className="text-muted-foreground hover:text-destructive transition-colors ml-1 p-0.5 rounded-full hover:bg-muted"
+                                        aria-label="Cerrar"
                                     >
                                         <X className="h-3.5 w-3.5" />
                                     </button>

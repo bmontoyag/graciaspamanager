@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { authFetch } from '@/lib/api';
+import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface ExpenseDialogProps {
     isOpen: boolean;
@@ -35,8 +37,8 @@ export default function ExpenseDialog({ isOpen, onClose, onSave, expense }: Expe
             const headers = { 'Authorization': `Bearer ${token}` };
 
             Promise.all([
-                fetch(`${API_URL}/users`, { headers }),
-                fetch(`${API_URL}/expense-types`, { headers })
+                authFetch(`${API_URL}/users`, { headers }),
+                authFetch(`${API_URL}/expense-types`, { headers })
             ])
                 .then(async ([usersRes, typesRes]) => {
                     const usersData = await usersRes.json();
@@ -98,7 +100,7 @@ export default function ExpenseDialog({ isOpen, onClose, onSave, expense }: Expe
                 ? `${API_URL}/expenses/${expense.id}`
                 : `${API_URL}/expenses`;
 
-            const res = await fetch(url, {
+            const res = await authFetch(url, {
                 method: isUpdate ? 'PATCH' : 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -115,7 +117,7 @@ export default function ExpenseDialog({ isOpen, onClose, onSave, expense }: Expe
                 }
 
                 console.error('Error response:', errorMessage);
-                alert(`Error al guardar el gasto: ${errorMessage}`);
+                toast.error(`Error al guardar el gasto: ${errorMessage}`);
                 return;
             }
 
@@ -126,21 +128,17 @@ export default function ExpenseDialog({ isOpen, onClose, onSave, expense }: Expe
             onClose();
         } catch (error) {
             console.error('Exception saving expense:', error);
-            alert(`Error al guardar el gasto: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+            toast.error(`Error al guardar el gasto: ${error instanceof Error ? error.message : 'Error desconocido'}`);
         }
     };
 
-    if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-card border rounded-lg p-6 w-full max-w-md">
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-bold">{expense ? 'Editar Gasto' : 'Nuevo Gasto'}</h2>
-                    <button onClick={onClose} className="hover:bg-muted rounded p-1">
-                        <X className="h-5 w-5" />
-                    </button>
-                </div>
+        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+            <DialogContent className="max-w-md">
+                <DialogHeader>
+                    <DialogTitle>{expense ? 'Editar Gasto' : 'Nuevo Gasto'}</DialogTitle>
+                </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
@@ -150,7 +148,7 @@ export default function ExpenseDialog({ isOpen, onClose, onSave, expense }: Expe
                             name="description"
                             value={formData.description}
                             onChange={handleChange}
-                            className="w-full p-2 border rounded-md bg-background"
+                            className="w-full p-2 border rounded-md bg-card"
                             required
                         />
                     </div>
@@ -163,7 +161,7 @@ export default function ExpenseDialog({ isOpen, onClose, onSave, expense }: Expe
                             name="amount"
                             value={formData.amount}
                             onChange={handleChange}
-                            className="w-full p-2 border rounded-md bg-background"
+                            className="w-full p-2 border rounded-md bg-card"
                             required
                         />
                     </div>
@@ -175,7 +173,7 @@ export default function ExpenseDialog({ isOpen, onClose, onSave, expense }: Expe
                                 name="category"
                                 value={formData.category}
                                 onChange={handleChange}
-                                className="w-full p-2 border rounded-md bg-background"
+                                className="w-full p-2 border rounded-md bg-card"
                                 required
                             >
                                 <option value="">Seleccionar...</option>
@@ -194,7 +192,7 @@ export default function ExpenseDialog({ isOpen, onClose, onSave, expense }: Expe
                                 name="typeId"
                                 value={formData.typeId}
                                 onChange={handleChange}
-                                className="w-full p-2 border rounded-md bg-background"
+                                className="w-full p-2 border rounded-md bg-card"
                             >
                                 <option value="">Ninguno</option>
                                 {expenseTypes.map((t) => (
@@ -212,7 +210,7 @@ export default function ExpenseDialog({ isOpen, onClose, onSave, expense }: Expe
                             name="workerId"
                             value={formData.workerId}
                             onChange={handleChange}
-                            className="w-full p-2 border rounded-md bg-background"
+                            className="w-full p-2 border rounded-md bg-card"
                         >
                             <option value="">Negocio (Gracia Spa)</option>
                             {users.map((u) => (
@@ -258,7 +256,7 @@ export default function ExpenseDialog({ isOpen, onClose, onSave, expense }: Expe
                             name="date"
                             value={formData.date}
                             onChange={handleChange}
-                            className="w-full p-2 border rounded-md bg-background"
+                            className="w-full p-2 border rounded-md bg-card"
                             required
                         />
                     </div>
@@ -279,7 +277,7 @@ export default function ExpenseDialog({ isOpen, onClose, onSave, expense }: Expe
                         </button>
                     </div>
                 </form>
-            </div>
-        </div>
+            </DialogContent>
+        </Dialog>
     );
 }

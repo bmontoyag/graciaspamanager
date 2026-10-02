@@ -14,9 +14,9 @@ export class ConfigurationService {
     if (!config) {
       config = await this.prisma.configuration.create({
         data: {
-          primaryColor: '#8B7355',
-          backgroundColor: '#F5F1E8',
-          sidebarColor: '#2C3E50',
+          primaryColor: '#56685A',
+          backgroundColor: '#F3F2EC',
+          sidebarColor: '#3F4F44',
           themeMode: 'light',
           openTime: '09:00',
           closeTime: '21:00',
@@ -26,6 +26,20 @@ export class ConfigurationService {
     }
 
     return config;
+  }
+
+  // Subconjunto sin datos sensibles (email de backup, RUC, plantillas, etc.)
+  async getPublicConfig() {
+    const config = await this.getGlobalConfig();
+    return {
+      businessName: config.businessName,
+      primaryColor: config.primaryColor,
+      backgroundColor: config.backgroundColor,
+      sidebarColor: config.sidebarColor,
+      themeMode: config.themeMode,
+      logoUrl: config.logoUrl,
+      loginBgUrl: config.loginBgUrl,
+    };
   }
 
   // Update the global configuration

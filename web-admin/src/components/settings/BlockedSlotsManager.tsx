@@ -2,6 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, Calendar, Clock, AlertCircle } from 'lucide-react';
+import { authFetch } from '@/lib/api';
+import { formatDate } from '@/lib/format';
+import { confirmDialog } from '@/components/ui/confirm-dialog';
+import { toast } from 'sonner';
 
 interface BlockedSlot {
     id: number;
@@ -25,7 +29,7 @@ export default function BlockedSlotsManager() {
 
     const fetchSlots = async () => {
         try {
-            const res = await fetch(`${API_URL}/blocked-slots`);
+            const res = await authFetch(`${API_URL}/blocked-slots`);
             if (res.ok) {
                 const data = await res.json();
                 setSlots(data);
@@ -43,7 +47,7 @@ export default function BlockedSlotsManager() {
         e.preventDefault();
         setLoading(true);
         try {
-            const res = await fetch(`${API_URL}/blocked-slots`, {
+            const res = await authFetch(`${API_URL}/blocked-slots`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
@@ -52,23 +56,23 @@ export default function BlockedSlotsManager() {
             if (res.ok) {
                 setFormData({ date: '', startTime: '', endTime: '', reason: '' });
                 fetchSlots();
-                alert('Bloqueo agregado correctamente');
+                toast.success('Bloqueo agregado correctamente');
             } else {
                 const err = await res.json();
-                alert(`Error: ${err.message || 'Error desconocido'}`);
+                toast.error(`Error: ${err.message || 'Error desconocido'}`);
             }
         } catch (error) {
             console.error('Error creating blocked slot:', error);
-            alert('Error al crear el bloqueo');
+            toast.error('Error al crear el bloqueo');
         } finally {
             setLoading(false);
         }
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm('¿Estás seguro de eliminar este bloqueo?')) return;
+        if (!await confirmDialog('¿Estás seguro de eliminar este bloqueo?')) return;
         try {
-            await fetch(`${API_URL}/blocked-slots/${id}`, { method: 'DELETE' });
+            await authFetch(`${API_URL}/blocked-slots/${id}`, { method: 'DELETE' });
             fetchSlots();
         } catch (error) {
             console.error('Error deleting blocked slot:', error);
@@ -92,7 +96,7 @@ export default function BlockedSlotsManager() {
                                 required
                                 value={formData.date}
                                 onChange={e => setFormData({ ...formData, date: e.target.value })}
-                                className="w-full p-2 border rounded-md text-sm bg-background"
+                                className="w-full p-2 border rounded-md text-sm bg-card"
                             />
                         </div>
                         <div className="grid grid-cols-2 gap-2">
@@ -103,7 +107,7 @@ export default function BlockedSlotsManager() {
                                     required
                                     value={formData.startTime}
                                     onChange={e => setFormData({ ...formData, startTime: e.target.value })}
-                                    className="w-full p-2 border rounded-md text-sm bg-background"
+                                    className="w-full p-2 border rounded-md text-sm bg-card"
                                 />
                             </div>
                             <div>
@@ -113,7 +117,7 @@ export default function BlockedSlotsManager() {
                                     required
                                     value={formData.endTime}
                                     onChange={e => setFormData({ ...formData, endTime: e.target.value })}
-                                    className="w-full p-2 border rounded-md text-sm bg-background"
+                                    className="w-full p-2 border rounded-md text-sm bg-card"
                                 />
                             </div>
                         </div>
@@ -124,7 +128,7 @@ export default function BlockedSlotsManager() {
                                 value={formData.reason}
                                 onChange={e => setFormData({ ...formData, reason: e.target.value })}
                                 placeholder="Ej: Mantenimiento, Feriado..."
-                                className="w-full p-2 border rounded-md text-sm bg-background"
+                                className="w-full p-2 border rounded-md text-sm bg-card"
                             />
                         </div>
                         <button
@@ -153,7 +157,7 @@ export default function BlockedSlotsManager() {
                                         <div className="flex items-center gap-2 mb-1">
                                             <Calendar className="h-3 w-3 text-muted-foreground" />
                                             <span className="text-sm font-medium">
-                                                {new Date(slot.date).toLocaleDateString()}
+                                                {formatDate(slot.date)}
                                             </span>
                                         </div>
                                         <div className="flex items-center gap-4 text-xs text-muted-foreground">

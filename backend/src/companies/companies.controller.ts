@@ -3,8 +3,10 @@ import { AuthGuard } from '@nestjs/passport';
 import { CompaniesService } from './companies.service';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
+import { RequirePermissions } from '../auth/permissions.decorator';
 
 @UseGuards(AuthGuard('jwt'))
+@RequirePermissions('corporate')
 @Controller('companies')
 export class CompaniesController {
     constructor(private readonly companiesService: CompaniesService) { }

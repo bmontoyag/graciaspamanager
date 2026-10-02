@@ -201,7 +201,11 @@ export class AppointmentsService {
             : (workerId ? [workerId] : undefined);
 
         if (date || duration || workerIds) {
-            const workersToCheck = workerIds || existingAppointment.workerId ? [existingAppointment.workerId] : [];
+            // Validar los nuevos terapeutas o, si no cambian, todos los actualmente asignados
+            const currentWorkerIds = existingAppointment.workers.length > 0
+                ? existingAppointment.workers.map(w => w.workerId)
+                : [existingAppointment.workerId];
+            const workersToCheck = workerIds ?? currentWorkerIds;
             for (const idToCheck of workersToCheck) {
                 if (idToCheck) {
                     await this.validateAppointment(
@@ -332,7 +336,7 @@ export class AppointmentsService {
 
             const dayAppointments = await prismaClient.appointment.findMany({
                 where: {
-                    workerId: workerId,
+                    OR: [{ workerId }, { workers: { some: { workerId } } }],
                     date: {
                         gte: dayStart,
                         lte: dayEnd,

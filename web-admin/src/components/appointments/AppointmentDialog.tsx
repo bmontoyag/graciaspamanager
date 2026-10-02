@@ -1,8 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, UserPlus, ChevronDown, ChevronUp, Loader2, PlusCircle, Trash2, Pencil } from 'lucide-react';
+import { UserPlus, ChevronDown, ChevronUp, Loader2, PlusCircle, Trash2, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
+import { authFetch } from '@/lib/api';
+import { formatMoney, formatTime } from '@/lib/format';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface AppointmentDialogProps {
     isOpen: boolean;
@@ -68,16 +71,16 @@ export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate
     useEffect(() => {
         if (isOpen) {
             Promise.all([
-                fetch(`${API_URL}/clients`).then(r => r.json()),
-                fetch(`${API_URL}/services`).then(r => r.json()),
-                fetch(`${API_URL}/users`).then(r => r.json())
+                authFetch(`${API_URL}/clients`).then(r => r.json()),
+                authFetch(`${API_URL}/services`).then(r => r.json()),
+                authFetch(`${API_URL}/users`).then(r => r.json())
             ]).then(([c, s, u]) => {
                 setClients(Array.isArray(c) ? c : []);
                 setServices(Array.isArray(s) ? s : []);
                 setWorkers(Array.isArray(u) ? u : []);
             }).catch(err => console.error(err));
 
-            fetch(`${API_URL}/configuration`).then(r => r.json()).then(conf => {
+            authFetch(`${API_URL}/configuration`).then(r => r.json()).then(conf => {
                 if (conf.discoverySources) setDiscoverySources(conf.discoverySources);
                 if (conf.whatsappMessageTemplate) setWhatsappTemplate(conf.whatsappMessageTemplate);
             }).catch(console.error);
@@ -192,7 +195,7 @@ export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate
         if (!newClient.name.trim()) { toast.error('El nombre es requerido'); return; }
         setCreatingClient(true);
         try {
-            const res = await fetch(`${API_URL}/clients`, {
+            const res = await authFetch(`${API_URL}/clients`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -264,7 +267,7 @@ export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate
                 };
             }
 
-            const res = await fetch(url, {
+            const res = await authFetch(url, {
                 method: appointment ? 'PATCH' : 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -316,7 +319,6 @@ export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate
         onClose();
     };
 
-    if (!isOpen) return null;
 
     const totalDuration = selectedServices.reduce((acc, s) => acc + (Number(s.duration) || 0), 0);
     const totalCost = selectedServices.reduce((acc, s) => acc + (Number(s.cost) || 0), 0);
@@ -326,12 +328,12 @@ export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate
     const servicesWithTimes = selectedServices.map(s => {
         const start = new Date(new Date(formData.date).getTime() + cumulativeMinutes * 60000);
         cumulativeMinutes += (Number(s.duration) || 0);
-        return { ...s, startTime: start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
+        return { ...s, startTime: formatTime(start) };
     });
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-background p-6 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+            <DialogContent className="max-w-2xl">
                 {createdAppointment ? (
                     <div className="text-center py-8">
                         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100 mb-4">
@@ -339,7 +341,7 @@ export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                             </svg>
                         </div>
-                        <h2 className="text-2xl font-bold mb-2">¡Reserva Registrada!</h2>
+                        <DialogTitle className="text-2xl mb-2">¡Reserva Registrada!</DialogTitle>
                         <p className="text-muted-foreground mb-8">La cita ha sido guardada exitosamente en el sistema.</p>
                         
                         <div className="flex justify-center gap-4">
@@ -353,10 +355,9 @@ export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate
                     </div>
                 ) : (
                     <>
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-xl font-bold">{appointment ? 'Editar Cita' : 'Nueva Cita Multi-Servicio'}</h2>
-                            <button onClick={onClose}><X className="h-5 w-5" /></button>
-                        </div>
+                        <DialogHeader>
+                            <DialogTitle>{appointment ? 'Editar Cita' : 'Nueva Cita Multi-Servicio'}</DialogTitle>
+                        </DialogHeader>
 
                         <form onSubmit={handleSubmit} className="space-y-6">
                             {/* ── CLIENTE ── */}
@@ -372,9 +373,9 @@ export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate
                                 {showNewClient ? (
                                     <div className="p-4 border border-dashed border-primary/50 rounded-lg bg-primary/5 space-y-3">
                                         <div className="grid grid-cols-2 gap-3">
-                                            <input type="text" placeholder="Nombre *" value={newClient.name} onChange={e => setNewClient({ ...newClient, name: e.target.value })} className="col-span-2 p-2 text-sm border rounded-md bg-background" />
-                                            <input type="tel" placeholder="Teléfono" value={newClient.phone} onChange={e => setNewClient({ ...newClient, phone: e.target.value })} className="p-2 text-sm border rounded-md bg-background" />
-                                            <input type="email" placeholder="Email" value={newClient.email} onChange={e => setNewClient({ ...newClient, email: e.target.value })} className="p-2 text-sm border rounded-md bg-background" />
+                                            <input type="text" placeholder="Nombre *" value={newClient.name} onChange={e => setNewClient({ ...newClient, name: e.target.value })} className="col-span-2 p-2 text-sm border rounded-md bg-card" />
+                                            <input type="tel" placeholder="Teléfono" value={newClient.phone} onChange={e => setNewClient({ ...newClient, phone: e.target.value })} className="p-2 text-sm border rounded-md bg-card" />
+                                            <input type="email" placeholder="Email" value={newClient.email} onChange={e => setNewClient({ ...newClient, email: e.target.value })} className="p-2 text-sm border rounded-md bg-card" />
                                         </div>
                                         <button type="button" onClick={handleCreateClient} disabled={creatingClient} className="px-4 py-2 text-xs font-bold bg-primary text-white rounded-md flex items-center gap-2">
                                             {creatingClient && <Loader2 className="h-3 w-3 animate-spin" />}
@@ -383,8 +384,8 @@ export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate
                                     </div>
                                 ) : (
                                     <div className="space-y-2">
-                                        <input type="text" placeholder="Buscar cliente..." value={clientSearch} onChange={e => setClientSearch(e.target.value)} className="w-full p-2 text-sm border rounded-md bg-background" />
-                                        <select name="clientId" value={formData.clientId} onChange={handleFormDataChange} className="w-full p-2 border rounded-md bg-background text-sm" required>
+                                        <input type="text" placeholder="Buscar cliente..." value={clientSearch} onChange={e => setClientSearch(e.target.value)} className="w-full p-2 text-sm border rounded-md bg-card" />
+                                        <select name="clientId" value={formData.clientId} onChange={handleFormDataChange} className="w-full p-2 border rounded-md bg-card text-sm" required>
                                             <option value="">Seleccionar cliente</option>
                                             {filteredClients.map(c => <option key={c.id} value={c.id}>{c.name} {c.phone ? `(${c.phone})` : ''}</option>)}
                                         </select>
@@ -396,11 +397,11 @@ export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
                                     <label className="text-sm font-semibold">Fecha y Hora de Inicio</label>
-                                    <input type="datetime-local" name="date" value={formData.date} onChange={handleFormDataChange} className="w-full p-2 text-sm border rounded-md bg-background" required />
+                                    <input type="datetime-local" name="date" value={formData.date} onChange={handleFormDataChange} className="w-full p-2 text-sm border rounded-md bg-card" required />
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-sm font-semibold">Estado</label>
-                                    <select name="status" value={formData.status} onChange={handleFormDataChange} className="w-full p-2 text-sm border rounded-md bg-background">
+                                    <select name="status" value={formData.status} onChange={handleFormDataChange} className="w-full p-2 text-sm border rounded-md bg-card">
                                         <option value="PENDING">Pendiente</option>
                                         <option value="CONFIRMED">Confirmada</option>
                                         <option value="COMPLETED">Completada</option>
@@ -432,12 +433,12 @@ export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center gap-2">
-                                                        <p className="text-sm font-bold">S/ {item.cost}</p>
+                                                        <p className="text-sm font-bold">{formatMoney(item.cost)}</p>
                                                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <button type="button" onClick={() => handleEditService(index)} className="text-primary p-1 hover:bg-primary/10 rounded">
+                                                            <button type="button" onClick={() => handleEditService(index)} className="text-primary p-1 hover:bg-primary/10 rounded" aria-label="Editar">
                                                                 <Pencil className="h-4 w-4" />
                                                             </button>
-                                                            <button type="button" onClick={() => handleRemoveService(index)} className="text-destructive p-1 hover:bg-destructive/10 rounded">
+                                                            <button type="button" onClick={() => handleRemoveService(index)} className="text-destructive p-1 hover:bg-destructive/10 rounded" aria-label="Eliminar">
                                                                 <Trash2 className="h-4 w-4" />
                                                             </button>
                                                         </div>
@@ -449,7 +450,7 @@ export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate
                                             <span className="font-semibold">Resumen Total:</span>
                                             <div className="space-x-4">
                                                 <span>{totalDuration} min</span>
-                                                <span className="font-bold text-primary text-lg">S/ {totalCost.toFixed(2)}</span>
+                                                <span className="font-bold text-primary text-lg">{formatMoney(totalCost)}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -464,9 +465,9 @@ export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate
                                         {editingServiceIndex !== null ? 'Editar Servicio' : 'Agregar Servicio'}
                                     </p>
                                         <div className="grid grid-cols-2 gap-3">
-                                            <select value={currentServiceId} onChange={handleServiceSelect} className="col-span-2 p-2 text-sm border rounded-md bg-background">
+                                            <select value={currentServiceId} onChange={handleServiceSelect} className="col-span-2 p-2 text-sm border rounded-md bg-card">
                                                 <option value="">Seleccionar Servicio</option>
-                                                {services.map(s => <option key={s.id} value={s.id}>{s.name} (S/ {s.price})</option>)}
+                                                {services.map(s => <option key={s.id} value={s.id}>{s.name} ({formatMoney(s.price)})</option>)}
                                             </select>
                                             
                                             <div className="col-span-2 space-y-1">
@@ -491,8 +492,8 @@ export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate
                                             </div>
 
                                             <div className="flex gap-2">
-                                                <input type="number" placeholder="Cost" value={currentCost} onChange={e => setCurrentCost(e.target.value)} className="w-1/2 p-2 text-sm border rounded-md bg-background" />
-                                                <input type="number" placeholder="Min" value={currentDuration} onChange={e => setCurrentDuration(e.target.value)} className="w-1/2 p-2 text-sm border rounded-md bg-background" />
+                                                <input type="number" placeholder="Cost" value={currentCost} onChange={e => setCurrentCost(e.target.value)} className="w-1/2 p-2 text-sm border rounded-md bg-card" />
+                                                <input type="number" placeholder="Min" value={currentDuration} onChange={e => setCurrentDuration(e.target.value)} className="w-1/2 p-2 text-sm border rounded-md bg-card" />
                                             </div>
                                         </div>
                                         <button type="button" onClick={handleAddService} className="w-full py-2 bg-primary text-white rounded-md text-sm font-bold shadow-sm hover:bg-primary/90 transition-colors">
@@ -503,7 +504,7 @@ export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate
 
                             <div className="space-y-1">
                                 <label className="text-sm font-semibold">Notas</label>
-                                <textarea name="notes" value={formData.notes} onChange={handleFormDataChange} className="w-full p-2 text-sm border rounded-md bg-background" rows={2} placeholder="Opcional..." />
+                                <textarea name="notes" value={formData.notes} onChange={handleFormDataChange} className="w-full p-2 text-sm border rounded-md bg-card" rows={2} placeholder="Opcional..." />
                             </div>
 
                             <div className="p-4 border border-dashed rounded-lg bg-yellow-50/50 dark:bg-yellow-900/10 space-y-4">
@@ -511,11 +512,11 @@ export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-1">
                                         <label className="text-xs font-semibold">Monto (S/)</label>
-                                        <input type="number" name="advanceAmount" value={formData.advanceAmount} onChange={handleFormDataChange} className="w-full p-2 text-sm border rounded-md bg-background" placeholder="0.00" />
+                                        <input type="number" name="advanceAmount" value={formData.advanceAmount} onChange={handleFormDataChange} className="w-full p-2 text-sm border rounded-md bg-card" placeholder="0.00" />
                                     </div>
                                     <div className="space-y-1">
                                         <label className="text-xs font-semibold">Método de Pago</label>
-                                        <select name="paymentMethod" value={formData.paymentMethod} onChange={handleFormDataChange} className="w-full p-2 text-sm border rounded-md bg-background">
+                                        <select name="paymentMethod" value={formData.paymentMethod} onChange={handleFormDataChange} className="w-full p-2 text-sm border rounded-md bg-card">
                                             <option value="CASH">Efectivo</option>
                                             <option value="YAPE">Yape</option>
                                             <option value="PLIN">Plin</option>
@@ -536,7 +537,7 @@ export default function AppointmentDialog({ isOpen, onClose, onSave, initialDate
                         </form>
                     </>
                 )}
-            </div>
-        </div>
+            </DialogContent>
+        </Dialog>
     );
 }

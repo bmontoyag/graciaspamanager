@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { User, Lock, Save, Eye, EyeOff } from 'lucide-react';
+import { authFetch } from '@/lib/api';
+import { toast } from 'sonner';
 
 export default function ProfilePage() {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -38,7 +40,7 @@ export default function ProfilePage() {
     const fetchUserData = async (id: string) => {
         try {
             console.log('Fetching user data for ID:', id);
-            const res = await fetch(`${API_URL}/users/${id}`);
+            const res = await authFetch(`${API_URL}/users/${id}`);
 
             if (!res.ok) {
                 throw new Error(`HTTP error! status: ${res.status}`);
@@ -53,7 +55,7 @@ export default function ProfilePage() {
             });
         } catch (error) {
             console.error('Error fetching user data:', error);
-            alert('Error al cargar los datos del usuario. Verifica que el backend esté corriendo.');
+            toast.error('Error al cargar los datos del usuario. Verifica que el backend esté corriendo.');
         } finally {
             setLoading(false);
         }
@@ -72,7 +74,7 @@ export default function ProfilePage() {
     const handleUpdateProfile = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const res = await fetch(`${API_URL}/users/${userId}`, {
+            const res = await authFetch(`${API_URL}/users/${userId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -83,11 +85,11 @@ export default function ProfilePage() {
 
             if (!res.ok) throw new Error('Failed to update profile');
 
-            alert('✅ Perfil actualizado correctamente');
+            toast.success('Perfil actualizado correctamente');
             if (userId) fetchUserData(userId);
         } catch (error) {
             console.error('Error updating profile:', error);
-            alert('❌ Error al actualizar el perfil');
+            toast.error('Error al actualizar el perfil');
         }
     };
 
@@ -95,17 +97,17 @@ export default function ProfilePage() {
         e.preventDefault();
 
         if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-            alert('❌ Las contraseñas no coinciden');
+            toast.error('Las contraseñas no coinciden');
             return;
         }
 
         if (passwordForm.newPassword.length < 6) {
-            alert('❌ La contraseña debe tener al menos 6 caracteres');
+            toast.error('La contraseña debe tener al menos 6 caracteres');
             return;
         }
 
         try {
-            const res = await fetch(`${API_URL}/users/${userId}`, {
+            const res = await authFetch(`${API_URL}/users/${userId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -115,7 +117,7 @@ export default function ProfilePage() {
 
             if (!res.ok) throw new Error('Failed to update password');
 
-            alert('✅ Contraseña actualizada correctamente');
+            toast.success('Contraseña actualizada correctamente');
             setPasswordForm({
                 currentPassword: '',
                 newPassword: '',
@@ -123,7 +125,7 @@ export default function ProfilePage() {
             });
         } catch (error) {
             console.error('Error updating password:', error);
-            alert('❌ Error al actualizar la contraseña');
+            toast.error('Error al actualizar la contraseña');
         }
     };
 
@@ -172,7 +174,7 @@ export default function ProfilePage() {
                                 name="name"
                                 value={profileForm.name}
                                 onChange={handleProfileChange}
-                                className="w-full p-3 border rounded-md bg-background"
+                                className="w-full p-3 border rounded-md bg-card"
                                 required
                             />
                         </div>
@@ -184,7 +186,7 @@ export default function ProfilePage() {
                                 name="email"
                                 value={profileForm.email}
                                 onChange={handleProfileChange}
-                                className="w-full p-3 border rounded-md bg-background"
+                                className="w-full p-3 border rounded-md bg-card"
                                 required
                             />
                         </div>
@@ -225,7 +227,7 @@ export default function ProfilePage() {
                                     name="newPassword"
                                     value={passwordForm.newPassword}
                                     onChange={handlePasswordChange}
-                                    className="w-full p-3 border rounded-md bg-background pr-10"
+                                    className="w-full p-3 border rounded-md bg-card pr-10"
                                     required
                                     minLength={6}
                                 />
@@ -247,7 +249,7 @@ export default function ProfilePage() {
                                 name="confirmPassword"
                                 value={passwordForm.confirmPassword}
                                 onChange={handlePasswordChange}
-                                className="w-full p-3 border rounded-md bg-background"
+                                className="w-full p-3 border rounded-md bg-card"
                                 required
                                 minLength={6}
                             />

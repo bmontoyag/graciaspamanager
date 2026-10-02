@@ -17,7 +17,7 @@ type Day = { date: string; startTime: string; endTime: string };
 type Item = { serviceId: string; description: string; quantity: string; unitPrice: string };
 type Condition = { title: string; text: string };
 
-const inputClass = 'w-full p-2 border rounded-md bg-background disabled:opacity-70';
+const inputClass = 'w-full p-2 border rounded-md bg-card disabled:bg-muted';
 const round2 = (v: number) => Math.round(v * 100) / 100;
 
 function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
@@ -44,7 +44,7 @@ function StringListEditor({ values, onChange, placeholder, disabled }: {
                         className={inputClass}
                     />
                     {!disabled && (
-                        <button type="button" onClick={() => onChange(values.filter((_, j) => j !== i))} className="p-2 hover:bg-accent rounded text-red-600">
+                        <button type="button" onClick={() => onChange(values.filter((_, j) => j !== i))} className="p-2 hover:bg-accent rounded text-red-600" aria-label="Eliminar">
                             <Trash2 className="h-4 w-4" />
                         </button>
                     )}
@@ -332,7 +332,7 @@ export default function QuoteForm({ quote, readOnly, onSaved }: QuoteFormProps) 
                                     <input type="time" value={day.startTime} onChange={e => updateDay(i, 'startTime', e.target.value)} required className={inputClass} />
                                     <input type="time" value={day.endTime} onChange={e => updateDay(i, 'endTime', e.target.value)} required className={inputClass} />
                                     {!readOnly && days.length > 1 ? (
-                                        <button type="button" onClick={() => setDays(days.filter((_, j) => j !== i))} className="p-2 hover:bg-accent rounded text-red-600">
+                                        <button type="button" onClick={() => setDays(days.filter((_, j) => j !== i))} className="p-2 hover:bg-accent rounded text-red-600" aria-label="Eliminar">
                                             <Trash2 className="h-4 w-4" />
                                         </button>
                                     ) : <span className="w-8" />}
@@ -369,7 +369,7 @@ export default function QuoteForm({ quote, readOnly, onSaved }: QuoteFormProps) 
                                                     className={`${inputClass} font-medium`}
                                                 />
                                                 {!readOnly && (
-                                                    <button type="button" onClick={() => setConditions(conditions.filter((_, j) => j !== i))} className="p-2 hover:bg-accent rounded text-red-600">
+                                                    <button type="button" onClick={() => setConditions(conditions.filter((_, j) => j !== i))} className="p-2 hover:bg-accent rounded text-red-600" aria-label="Eliminar">
                                                         <Trash2 className="h-4 w-4" />
                                                     </button>
                                                 )}
@@ -410,7 +410,7 @@ export default function QuoteForm({ quote, readOnly, onSaved }: QuoteFormProps) 
                                         {formatMoney((parseFloat(item.quantity) || 0) * (parseFloat(item.unitPrice) || 0))}
                                     </span>
                                     {!readOnly && items.length > 1 ? (
-                                        <button type="button" onClick={() => setItems(items.filter((_, j) => j !== i))} className="p-2 hover:bg-accent rounded text-red-600 justify-self-end">
+                                        <button type="button" onClick={() => setItems(items.filter((_, j) => j !== i))} className="p-2 hover:bg-accent rounded text-red-600 justify-self-end" aria-label="Eliminar">
                                             <Trash2 className="h-4 w-4" />
                                         </button>
                                     ) : <span />}

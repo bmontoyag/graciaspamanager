@@ -11,8 +11,9 @@ import {
     DAY_STATUS, EVENT_STATUS, PAYMENT_METHODS, PAYMENT_TYPES,
     formatDay, formatMoney, getLocalToday,
 } from '@/lib/corporate';
+import { confirmDialog } from '@/components/ui/confirm-dialog';
 
-const inputClass = 'p-2 border rounded-md bg-background text-sm';
+const inputClass = 'p-2 border rounded-md bg-card text-sm';
 
 function SummaryCard({ label, value, className = '', hint }: { label: string; value: string; className?: string; hint?: string }) {
     return (
@@ -65,8 +66,8 @@ function DayCard({ day, users, defaultRate, onChange, run }: {
         if (message) toast.success(message);
     });
 
-    const removeDay = () => {
-        if (!confirm('¿Eliminar esta jornada?')) return;
+    const removeDay = async () => {
+        if (!await confirmDialog('¿Eliminar esta jornada?')) return;
         run(async () => {
             onChange(await apiFetch(`/corporate/event-days/${day.id}`, { method: 'DELETE' }));
             toast.success('Jornada eliminada');
@@ -165,7 +166,7 @@ function DayCard({ day, users, defaultRate, onChange, run }: {
                                     <div className="flex justify-end gap-1">
                                         {w.isPaid ? (
                                             <button
-                                                onClick={() => confirm('Se eliminará el gasto asociado a este pago. ¿Continuar?') && workerAction(`${w.id}/unpay`, 'POST', undefined, 'Pago revertido')}
+                                                onClick={async () => (await confirmDialog({ title: '¿Revertir el pago?', description: 'Se eliminará el gasto asociado a este pago.' })) && workerAction(`${w.id}/unpay`, 'POST', undefined, 'Pago revertido')}
                                                 className="px-2 py-1 border rounded text-xs flex items-center gap-1 hover:bg-muted"
                                             >
                                                 <Undo2 className="h-3 w-3" /> Revertir
@@ -178,7 +179,7 @@ function DayCard({ day, users, defaultRate, onChange, run }: {
                                                 >
                                                     <CheckCircle className="h-3 w-3" /> Pagar
                                                 </button>
-                                                <button onClick={() => workerAction(`${w.id}`, 'DELETE', undefined, 'Terapeuta retirada')} className="p-1 hover:bg-accent rounded text-red-600">
+                                                <button onClick={() => workerAction(`${w.id}`, 'DELETE', undefined, 'Terapeuta retirada')} className="p-1 hover:bg-accent rounded text-red-600" aria-label="Eliminar">
                                                     <Trash2 className="h-4 w-4" />
                                                 </button>
                                             </>
@@ -261,8 +262,8 @@ export default function EventDetailPage() {
         toast.success(message);
     });
 
-    const deleteEvent = () => {
-        if (!confirm('¿Eliminar el evento? La cotización volverá a estado Aceptada.')) return;
+    const deleteEvent = async () => {
+        if (!await confirmDialog({ title: '¿Eliminar el evento?', description: 'La cotización volverá a estado Aceptada.' })) return;
         run(async () => {
             await apiFetch(`/corporate/events/${id}`, { method: 'DELETE' });
             toast.success('Evento eliminado');
@@ -303,8 +304,8 @@ export default function EventDetailPage() {
         });
     };
 
-    const removeItem = (path: string, message: string) => {
-        if (!confirm('¿Eliminar este registro?')) return;
+    const removeItem = async (path: string, message: string) => {
+        if (!await confirmDialog('¿Eliminar este registro?')) return;
         run(async () => {
             applyEvent(await apiFetch(path, { method: 'DELETE' }));
             toast.success(message);
@@ -413,7 +414,7 @@ export default function EventDetailPage() {
                                         <td className="p-3">{PAYMENT_METHODS[p.method]}</td>
                                         <td className="p-3 text-right font-mono text-green-600">{formatMoney(p.amount)}</td>
                                         <td className="p-3 text-right">
-                                            <button onClick={() => removeItem(`/corporate/event-payments/${p.id}`, 'Cobro eliminado')} className="p-1 hover:bg-accent rounded text-red-600">
+                                            <button onClick={() => removeItem(`/corporate/event-payments/${p.id}`, 'Cobro eliminado')} className="p-1 hover:bg-accent rounded text-red-600" aria-label="Eliminar">
                                                 <Trash2 className="h-4 w-4" />
                                             </button>
                                         </td>
@@ -461,7 +462,7 @@ export default function EventDetailPage() {
                                         </td>
                                         <td className="p-3 text-right font-mono text-red-600">- {formatMoney(e.amount)}</td>
                                         <td className="p-3 text-right">
-                                            <button onClick={() => removeItem(`/corporate/event-expenses/${e.id}`, 'Gasto eliminado')} className="p-1 hover:bg-accent rounded text-red-600">
+                                            <button onClick={() => removeItem(`/corporate/event-expenses/${e.id}`, 'Gasto eliminado')} className="p-1 hover:bg-accent rounded text-red-600" aria-label="Eliminar">
                                                 <Trash2 className="h-4 w-4" />
                                             </button>
                                         </td>

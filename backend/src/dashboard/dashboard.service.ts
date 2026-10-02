@@ -38,7 +38,7 @@ export class DashboardService {
             } 
         };
         if (isWorker) {
-            appointmentsTodayWhere.workerId = workerId;
+            appointmentsTodayWhere.OR = [{ workerId }, { workers: { some: { workerId } } }];
         }
 
         const appointmentsToday = await this.prisma.appointment.count({
@@ -129,7 +129,7 @@ export class DashboardService {
 
         const isWorker = user?.roles?.includes('WORKER') && !user?.roles?.includes('ADMIN');
         if (isWorker) {
-            where.workerId = user.userId;
+            where.OR = [{ workerId: user.userId }, { workers: { some: { workerId: user.userId } } }];
         }
 
         return this.prisma.appointment.findMany({
@@ -138,40 +138,11 @@ export class DashboardService {
                 client: true,
                 service: true,
                 worker: true,
+                workers: { include: { worker: { select: { id: true, name: true } } } },
             },
             orderBy: {
                 date: 'asc'
             }
         });
-    }
-
-    async getFinanceStats() {
-        const startOfMonth = getStartOfMonthLima();
-
-        const income = await this.prisma.attention.aggregate({
-            _sum: { totalCost: true },
-            where: { date: { gte: startOfMonth } },
-        });
-
-        const expenses = await this.prisma.expense.aggregate({
-            _sum: { amount: true },
-            where: { date: { gte: startOfMonth } },
-        });
-
-        const corporate = await this.prisma.payment.aggregate({
-            _sum: { amount: true },
-            where: { corporateEventId: { not: null }, date: { gte: startOfMonth } },
-        });
-
-        const incomeVal = Number(income._sum.totalCost || 0);
-        const corporateVal = Number(corporate._sum.amount || 0);
-        const expenseVal = Number(expenses._sum.amount || 0);
-
-        return {
-            income: incomeVal,
-            corporateIncome: corporateVal,
-            expenses: expenseVal,
-            net: incomeVal + corporateVal - expenseVal,
-        };
     }
 }

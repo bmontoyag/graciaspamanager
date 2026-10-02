@@ -8,6 +8,8 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
     PieChart, Pie, Cell
 } from 'recharts';
+import { authFetch } from '@/lib/api';
+import { formatMoney } from '@/lib/format';
 
 export default function AnnualReportPage() {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -50,7 +52,7 @@ export default function AnnualReportPage() {
 
     const fetchConfiguration = async () => {
         try {
-            const res = await fetch(`${API_URL}/configuration`);
+            const res = await authFetch(`${API_URL}/configuration`);
             if (res.ok) {
                 const config = await res.json();
                 const primary = config.primaryColor || '#8B7355';
@@ -81,8 +83,8 @@ export default function AnnualReportPage() {
         setLoading(true);
         try {
             const [attentionsRes, expensesRes] = await Promise.all([
-                fetch(`${API_URL}/attentions`),
-                fetch(`${API_URL}/expenses`)
+                authFetch(`${API_URL}/attentions`),
+                authFetch(`${API_URL}/expenses`)
             ]);
 
             const attentions: any[] = await attentionsRes.json();
@@ -185,7 +187,7 @@ export default function AnnualReportPage() {
                     <select
                         value={selectedYear}
                         onChange={(e) => setSelectedYear(e.target.value)}
-                        className="p-2 border rounded-md bg-background w-32"
+                        className="p-2 border rounded-md bg-card w-32"
                     >
                         {Array.from({ length: 5 }, (_, i) => {
                             const year = new Date().getFullYear() - 2 + i;
@@ -206,7 +208,7 @@ export default function AnnualReportPage() {
                                 <span className="text-muted-foreground font-medium">Ingresos Totales</span>
                                 <TrendingUp className="h-5 w-5 text-green-600" />
                             </div>
-                            <p className="text-3xl font-bold text-green-600">S/ {totalIncome.toFixed(2)}</p>
+                            <p className="text-3xl font-bold text-green-600">{formatMoney(totalIncome)}</p>
                         </div>
 
                         <div className="bg-card border rounded-lg p-6 shadow-sm">
@@ -214,7 +216,7 @@ export default function AnnualReportPage() {
                                 <span className="text-muted-foreground font-medium">Gastos Totales</span>
                                 <TrendingDown className="h-5 w-5 text-red-600" />
                             </div>
-                            <p className="text-3xl font-bold text-red-600">S/ {totalExpenses.toFixed(2)}</p>
+                            <p className="text-3xl font-bold text-red-600">{formatMoney(totalExpenses)}</p>
                         </div>
 
                         <div className="bg-card border rounded-lg p-6 shadow-sm">
@@ -223,7 +225,7 @@ export default function AnnualReportPage() {
                                 <DollarSign className="h-5 w-5 text-primary" />
                             </div>
                             <p className={`text-3xl font-bold ${netProfit >= 0 ? 'text-primary' : 'text-red-500'}`}>
-                                S/ {netProfit.toFixed(2)}
+                                {formatMoney(netProfit)}
                             </p>
                         </div>
                     </div>
@@ -269,7 +271,7 @@ export default function AnnualReportPage() {
                                                 <Cell key={`cell-${index}`} fill={configColors.chartPalette[index % configColors.chartPalette.length]} />
                                             ))}
                                         </Pie>
-                                        <Tooltip formatter={(value: any) => `S/ ${Number(value).toFixed(2)}`} />
+                                        <Tooltip formatter={(value: any) => formatMoney(value)} />
                                         <Legend />
                                     </PieChart>
                                 </ResponsiveContainer>
@@ -297,7 +299,7 @@ export default function AnnualReportPage() {
                                                     <Cell key={`cell-${index}`} fill={configColors.chartPalette[index % configColors.chartPalette.length]} />
                                                 ))}
                                             </Pie>
-                                            <Tooltip formatter={(value: any) => `S/ ${Number(value).toFixed(2)}`} />
+                                            <Tooltip formatter={(value: any) => formatMoney(value)} />
                                             <Legend />
                                         </PieChart>
                                     </ResponsiveContainer>
@@ -331,9 +333,9 @@ export default function AnnualReportPage() {
                                             return (
                                                 <tr key={index} className="border-b hover:bg-muted/50 transition">
                                                     <td className="p-4 font-medium capitalize">{data.month}</td>
-                                                    <td className="p-4 text-right font-mono text-green-600">S/ {data.ingresos.toFixed(2)}</td>
-                                                    <td className="p-4 text-right font-mono text-red-600">S/ {data.gastos.toFixed(2)}</td>
-                                                    <td className="p-4 text-right font-mono font-bold">S/ {data.ganancia.toFixed(2)}</td>
+                                                    <td className="p-4 text-right font-mono text-green-600">{formatMoney(data.ingresos)}</td>
+                                                    <td className="p-4 text-right font-mono text-red-600">{formatMoney(data.gastos)}</td>
+                                                    <td className="p-4 text-right font-mono font-bold">{formatMoney(data.ganancia)}</td>
                                                     <td className="p-4 text-right font-mono text-muted-foreground">{margin}%</td>
                                                 </tr>
                                             );

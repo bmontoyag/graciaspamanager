@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { clearSession } from '@/lib/api';
 
 export function AutoLogout({ children, timeoutMinutes = 15 }: { children: React.ReactNode, timeoutMinutes?: number }) {
     const router = useRouter();
@@ -17,11 +19,8 @@ export function AutoLogout({ children, timeoutMinutes = 15 }: { children: React.
 
         timeoutRef.current = setTimeout(() => {
             // Logout user on inactivity
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('userRole');
-            localStorage.removeItem('userRoles');
-
-            alert(`Sesión expirada por inactividad tras ${timeoutMinutes} minutos.`);
+            clearSession();
+            toast.info(`Sesión cerrada por inactividad tras ${timeoutMinutes} minutos.`);
             router.push('/');
         }, ms);
     };

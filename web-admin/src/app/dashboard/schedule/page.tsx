@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Clock } from 'lucide-react';
 import BlockedSlotsManager from '@/components/settings/BlockedSlotsManager';
+import { authFetch } from '@/lib/api';
 
 export default function SchedulePage() {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -19,7 +20,7 @@ export default function SchedulePage() {
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        fetch(`${API_URL}/configuration`)
+        authFetch(`${API_URL}/configuration`)
             .then(res => res.json())
             .then(data => {
                 if (data) {
@@ -37,7 +38,7 @@ export default function SchedulePage() {
         setLoading(true);
         try {
             const token = localStorage.getItem('accessToken');
-            const res = await fetch(`${API_URL}/configuration`, {
+            const res = await authFetch(`${API_URL}/configuration`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',

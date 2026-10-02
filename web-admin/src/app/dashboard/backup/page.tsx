@@ -9,6 +9,8 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Database, Download, Mail, Clock, CheckCircle, Upload, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { authFetch } from '@/lib/api';
+import { confirmDialog } from '@/components/ui/confirm-dialog';
 
 export default function BackupPage() {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -22,7 +24,7 @@ export default function BackupPage() {
 
     useEffect(() => {
         // Fetch current config
-        fetch(`${API_URL}/configuration`)
+        authFetch(`${API_URL}/configuration`)
             .then(res => res.json())
             .then(data => {
                 if (data) {
@@ -41,7 +43,7 @@ export default function BackupPage() {
         try {
             setLoading(true);
             const token = localStorage.getItem('accessToken');
-            const response = await fetch(`${API_URL}/backup/download`, {
+            const response = await authFetch(`${API_URL}/backup/download`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -70,7 +72,7 @@ export default function BackupPage() {
         try {
             setLoading(true);
             const token = localStorage.getItem('accessToken');
-            const res = await fetch(`${API_URL}/configuration`, {
+            const res = await authFetch(`${API_URL}/configuration`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -94,7 +96,7 @@ export default function BackupPage() {
         try {
             setLoading(true);
             const token = localStorage.getItem('accessToken');
-            const res = await fetch(`${API_URL}/backup/test-email`, {
+            const res = await authFetch(`${API_URL}/backup/test-email`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -122,7 +124,7 @@ export default function BackupPage() {
             const formData = new FormData();
             formData.append('file', file);
 
-            const res = await fetch(`${API_URL}/backup/restore`, {
+            const res = await authFetch(`${API_URL}/backup/restore`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -190,10 +192,15 @@ export default function BackupPage() {
                             variant="destructive"
                             disabled={loading}
                             className="w-full sm:w-auto"
-                            onClick={() => {
+                            onClick={async () => {
                                 const fileInput = document.getElementById('restore-file') as HTMLInputElement;
                                 if (fileInput.files && fileInput.files[0]) {
-                                    if (window.confirm('¿Estás absolutamente seguro? Esta acción reemplazará todos los datos actuales y no se puede deshacer.')) {
+                                    if (await confirmDialog({
+                                        title: '¿Restaurar la base de datos?',
+                                        description: 'Esta acción reemplazará todos los datos actuales y no se puede deshacer.',
+                                        confirmText: 'Sí, restaurar',
+                                        destructive: true,
+                                    })) {
                                         handleRestore(fileInput.files[0]);
                                     }
                                 } else {

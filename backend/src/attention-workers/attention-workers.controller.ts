@@ -1,6 +1,8 @@
 import { Controller, Patch, Param, Body, ParseIntPipe } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { RequirePermissions } from '../auth/permissions.decorator';
 
+@RequirePermissions('daily_closing')
 @Controller('attention-workers')
 export class AttentionWorkersController {
     constructor(private prisma: PrismaService) { }

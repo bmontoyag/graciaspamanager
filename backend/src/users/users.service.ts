@@ -3,6 +3,9 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from '../prisma/prisma.service';
 
+// Nunca exponer credenciales en las respuestas de la API
+const SENSITIVE_FIELDS = { passwordHash: true, fingerprintKey: true } as const;
+
 @Injectable()
 export class UsersService {
   constructor(private prisma: PrismaService) { }
@@ -22,7 +25,8 @@ export class UsersService {
       },
       include: {
         roles: { include: { role: true } },
-      }
+      },
+      omit: SENSITIVE_FIELDS,
     });
   }
 
@@ -32,6 +36,7 @@ export class UsersService {
       include: {
         roles: { include: { role: true } },
       },
+      omit: SENSITIVE_FIELDS,
     });
   }
 
@@ -41,6 +46,7 @@ export class UsersService {
       include: {
         roles: { include: { role: true } },
       },
+      omit: SENSITIVE_FIELDS,
     });
   }
 
@@ -71,12 +77,14 @@ export class UsersService {
       include: {
         roles: { include: { role: true } },
       },
+      omit: SENSITIVE_FIELDS,
     });
   }
 
   remove(id: number) {
     return this.prisma.user.delete({
       where: { id },
+      omit: SENSITIVE_FIELDS,
     });
   }
 }

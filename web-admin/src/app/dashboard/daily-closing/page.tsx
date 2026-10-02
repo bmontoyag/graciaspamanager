@@ -4,6 +4,10 @@ import { useState, useEffect } from 'react';
 import { DollarSign, TrendingUp, TrendingDown, Save, Calendar, Users, CheckCircle2, AlertTriangle } from 'lucide-react';
 import ExpenseDialog from '../../../components/expenses/ExpenseDialog';
 import { PageContainer } from '@/components/layout/PageContainer';
+import { authFetch } from '@/lib/api';
+import { formatMoney } from '@/lib/format';
+import { confirmDialog } from '@/components/ui/confirm-dialog';
+import { toast } from 'sonner';
 
 export default function DailyClosingPage() {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -30,8 +34,8 @@ export default function DailyClosingPage() {
         setLoading(true);
         try {
             const [attentionsRes, expensesRes] = await Promise.all([
-                fetch(`${API_URL}/attentions`),
-                fetch(`${API_URL}/expenses`)
+                authFetch(`${API_URL}/attentions`),
+                authFetch(`${API_URL}/expenses`)
             ]);
 
             const attentionsData = await attentionsRes.json();
@@ -150,7 +154,7 @@ export default function DailyClosingPage() {
         if (selectedTherapist) {
             try {
                 const updatePromises = selectedTherapist.workerRecords.map((record: any) =>
-                    fetch(`${API_URL}/attention-workers/${record.id}`, {
+                    authFetch(`${API_URL}/attention-workers/${record.id}`, {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -165,7 +169,7 @@ export default function DailyClosingPage() {
                 setSelectedTherapist(null);
             } catch (error) {
                 console.error('Error marking commissions as paid:', error);
-                alert('Error al marcar las comisiones como pagadas');
+                toast.error('Error al marcar las comisiones como pagadas');
             }
         }
     };
@@ -180,7 +184,7 @@ export default function DailyClosingPage() {
                         type="date"
                         value={selectedDate}
                         onChange={(e) => setSelectedDate(e.target.value)}
-                        className="flex-1 sm:flex-none p-2 border rounded-md bg-background w-full"
+                        className="flex-1 sm:flex-none p-2 border rounded-md bg-card w-full"
                     />
                 </div>
             </div>
@@ -196,7 +200,7 @@ export default function DailyClosingPage() {
                                 <span className="text-sm text-muted-foreground">Ingresos Totales</span>
                                 <TrendingUp className="h-4 w-4 text-green-600" />
                             </div>
-                            <p className="text-2xl font-bold text-green-600">S/ {totalIncome.toFixed(2)}</p>
+                            <p className="text-2xl font-bold text-green-600">{formatMoney(totalIncome)}</p>
                         </div>
 
                         <div className="bg-card border rounded-lg p-4">
@@ -204,7 +208,7 @@ export default function DailyClosingPage() {
                                 <span className="text-sm text-muted-foreground">Gastos Totales</span>
                                 <TrendingDown className="h-4 w-4 text-red-600" />
                             </div>
-                            <p className="text-2xl font-bold text-red-600">S/ {totalExpenses.toFixed(2)}</p>
+                            <p className="text-2xl font-bold text-red-600">{formatMoney(totalExpenses)}</p>
                         </div>
 
                         <div className="bg-card border rounded-lg p-4">
@@ -213,7 +217,7 @@ export default function DailyClosingPage() {
                                 <DollarSign className="h-4 w-4" />
                             </div>
                             <p className={`text-2xl font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                S/ {netProfit.toFixed(2)}
+                                {formatMoney(netProfit)}
                             </p>
                         </div>
 
@@ -255,7 +259,7 @@ export default function DailyClosingPage() {
                                                     </td>
                                                     <td className="p-4 text-center">{therapist.attentionCount}</td>
                                                     <td className="p-4 text-right font-mono text-green-600 font-bold">
-                                                        S/ {therapist.totalCommission.toFixed(2)}
+                                                        {formatMoney(therapist.totalCommission)}
                                                     </td>
                                                     <td className="p-4 text-center">
                                                         {therapist.paymentStatus === 'PAID' ? (
@@ -266,7 +270,7 @@ export default function DailyClosingPage() {
                                                                 </span>
                                                                 {therapist.paidExpenseInfo && (
                                                                     <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                                                                        (S/{Number(therapist.paidExpenseInfo.amount).toFixed(2)})
+                                                                        ({formatMoney(Number(therapist.paidExpenseInfo.amount))})
                                                                     </span>
                                                                 )}
                                                             </div>
@@ -278,7 +282,7 @@ export default function DailyClosingPage() {
                                                                 </span>
                                                                 {therapist.paidExpenseInfo && (
                                                                     <span className="text-[10px] text-orange-600 font-medium whitespace-nowrap">
-                                                                        (Pagado: S/{Number(therapist.paidExpenseInfo.amount).toFixed(2)})
+                                                                        (Pagado: {formatMoney(Number(therapist.paidExpenseInfo.amount))})
                                                                     </span>
                                                                 )}
                                                             </div>
@@ -309,14 +313,18 @@ export default function DailyClosingPage() {
                                                             <div className="flex gap-2 justify-center">
                                                                 {therapist.phoneNumber && (
                                                                     <button
-                                                                        onClick={() => {
+                                                                        onClick={async () => {
                                                                             const phone = therapist.phoneNumber.replace(/\s/g, '');
                                                                             const amount = therapist.totalCommission.toFixed(2);
                                                                             // Copiar el teléfono al portapapeles para pegarlo rápidamente en Yape
                                                                             navigator.clipboard.writeText(phone);
-                                                                            alert(`📱 Teléfono ${phone} copiado al portapapeles.\n💰 Monto exacto a pagar: S/ ${amount}\n\nAbriendo Yape...`);
+                                                                            const openYape = await confirmDialog({
+                                                                                title: 'Pagar con Yape',
+                                                                                description: `Teléfono ${phone} copiado al portapapeles. Monto exacto a pagar: S/ ${amount}.`,
+                                                                                confirmText: 'Abrir Yape',
+                                                                            });
                                                                             // Intentar abrir el app de Yape de forma nativa
-                                                                            window.location.href = 'yape://';
+                                                                            if (openYape) window.location.href = 'yape://';
                                                                         }}
                                                                         className="bg-purple-600 text-white px-3 py-1 rounded-md text-xs hover:bg-purple-700 transition flex items-center gap-1"
                                                                         title={`Yape a: ${therapist.phoneNumber}`}
@@ -344,7 +352,7 @@ export default function DailyClosingPage() {
                                                     {therapistList.reduce((sum: number, t: any) => sum + t.attentionCount, 0)}
                                                 </td>
                                                 <td className="p-4 text-right font-mono font-bold text-green-600 text-lg">
-                                                    S/ {therapistList.reduce((sum: number, t: any) => sum + t.totalCommission, 0).toFixed(2)}
+                                                    {formatMoney(therapistList.reduce((sum: number, t: any) => sum + t.totalCommission, 0))}
                                                 </td>
                                                 <td colSpan={2}></td>
                                             </tr>
@@ -386,7 +394,7 @@ export default function DailyClosingPage() {
                                                             ))}
                                                         </div>
                                                     </td>
-                                                    <td className="p-3 text-right font-mono">S/ {Number(att.totalCost).toFixed(2)}</td>
+                                                    <td className="p-3 text-right font-mono">{formatMoney(Number(att.totalCost))}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -431,7 +439,7 @@ export default function DailyClosingPage() {
                                                             <span className="text-muted-foreground text-xs italic">Negocio</span>
                                                         )}
                                                     </td>
-                                                    <td className="p-3 text-right font-mono text-red-600">S/ {Number(exp.amount).toFixed(2)}</td>
+                                                    <td className="p-3 text-right font-mono text-red-600">{formatMoney(Number(exp.amount))}</td>
                                                 </tr>
                                             ))}
                                         </tbody>

@@ -18,6 +18,16 @@ export class NotificationsCronService {
         this.logger.debug('Revisando la cola de tareas de notificación...');
         const now = new Date();
 
+        // Sin proveedor de push, las tareas vencidas se cancelan para que no se acumulen
+        // ni se disparen todas juntas cuando se configure uno.
+        if (!this.notificationsService.isEnabled) {
+            await this.prisma.notificationTask.updateMany({
+                where: { status: 'PENDING', executeAt: { lte: now } },
+                data: { status: 'CANCELLED' },
+            });
+            return;
+        }
+
         // 1. Encontrar todas las tareas PENDIENTES cuya hora de ejecución ya llegó o pasó
         const pendingTasks = await this.prisma.notificationTask.findMany({
             where: {
@@ -50,7 +60,7 @@ export class NotificationsCronService {
                     continue;
                 }
 
-                // Llamar a Expo Push y obtener resultado (simulado via notification.service)
+                // Enviar mediante el proveedor de push configurado
                 const success = await this.notificationsService.sendPushNotificationToUser(
                     task.targetUserId,
                     task.title,
@@ -58,7 +68,7 @@ export class NotificationsCronService {
                     task.data
                 );
 
-                // Actualizar el estado del trabajo en base al resultado de Expo
+                // Actualizar el estado del trabajo según el resultado del envío
                 await this.prisma.notificationTask.update({
                     where: { id: task.id },
                     data: {

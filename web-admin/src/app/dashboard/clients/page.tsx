@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Plus, Edit } from 'lucide-react';
 import ClientDialog from '../../../components/clients/ClientDialog';
 import { PageContainer } from '@/components/layout/PageContainer';
+import { authFetch } from '@/lib/api';
 
 interface Client {
     id: number;
@@ -23,7 +24,7 @@ export default function ClientsPage() {
 
     const fetchClients = () => {
         setLoading(true);
-        fetch(`${API_URL}/clients`)
+        authFetch(`${API_URL}/clients`)
             .then((res) => res.json())
             .then((data) => {
                 setClients(Array.isArray(data) ? data : []);
@@ -110,6 +111,7 @@ export default function ClientsPage() {
                                             <button
                                                 onClick={() => handleEdit(client)}
                                                 className="p-2 hover:bg-accent rounded inline-flex items-center"
+                                                aria-label="Editar"
                                             >
                                                 <Edit className="h-4 w-4" />
                                             </button>

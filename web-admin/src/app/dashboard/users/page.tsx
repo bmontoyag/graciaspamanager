@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react';
 import { Plus, Edit, Search, Trash2 } from 'lucide-react';
 import UserDialog from '../../../components/users/UserDialog';
 import { PageContainer } from '@/components/layout/PageContainer';
+import { authFetch } from '@/lib/api';
+import { confirmDialog } from '@/components/ui/confirm-dialog';
+import { toast } from 'sonner';
 
 export default function UsersPage() {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -15,7 +18,7 @@ export default function UsersPage() {
 
     const fetchUsers = () => {
         setLoading(true);
-        fetch(`${API_URL}/users`)
+        authFetch(`${API_URL}/users`)
             .then(res => res.json())
             .then(data => {
                 setUsers(Array.isArray(data) ? data : []);
@@ -38,17 +41,17 @@ export default function UsersPage() {
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm('¿Está seguro de eliminar este usuario?')) return;
+        if (!await confirmDialog('¿Está seguro de eliminar este usuario?')) return;
 
         try {
-            const res = await fetch(`${API_URL}/users/${id}`, {
+            const res = await authFetch(`${API_URL}/users/${id}`, {
                 method: 'DELETE'
             });
             if (!res.ok) throw new Error('Failed to delete');
             fetchUsers();
         } catch (error) {
             console.error('Error deleting user:', error);
-            alert('Error al eliminar el usuario');
+            toast.error('Error al eliminar el usuario');
         }
     };
 
@@ -124,12 +127,14 @@ export default function UsersPage() {
                                             <button
                                                 onClick={() => handleEdit(user)}
                                                 className="p-2 hover:bg-accent rounded"
+                                                aria-label="Editar"
                                             >
                                                 <Edit className="h-4 w-4" />
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(user.id)}
                                                 className="p-2 hover:bg-accent rounded text-red-600"
+                                                aria-label="Eliminar"
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </button>

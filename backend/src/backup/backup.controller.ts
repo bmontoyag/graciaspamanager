@@ -2,7 +2,9 @@ import { Controller, Get, Post, Res, UploadedFile, UseInterceptors, BadRequestEx
 import { FileInterceptor } from '@nestjs/platform-express';
 import { BackupService } from './backup.service';
 import type { Response } from 'express';
+import { RequirePermissions } from '../auth/permissions.decorator';
 
+@RequirePermissions('settings')
 @Controller('backup')
 export class BackupController {
   constructor(private readonly backupService: BackupService) { }

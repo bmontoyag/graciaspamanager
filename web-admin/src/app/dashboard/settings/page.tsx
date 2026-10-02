@@ -5,8 +5,10 @@ import { Save, Image, Palette, Wand2, MessageCircle, Plus, X } from 'lucide-reac
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { authFetch } from '@/lib/api';
 
 const PREDEFINED_THEMES = [
+    { name: 'Gracia (marca)', primary: '#56685A', sidebar: '#3F4F44', bg: '#F3F2EC' },
     { name: 'Clásico Dark', primary: '#2C3E50', sidebar: '#2C3E50', bg: '#f8f9fa' },
     { name: 'Ocean Blue', primary: '#0ea5e9', sidebar: '#0f172a', bg: '#f0f9ff' },
     { name: 'Forest Green', primary: '#10b981', sidebar: '#064e3b', bg: '#f0fdf4' },
@@ -37,7 +39,7 @@ export default function SettingsPage() {
 
     const loadConfiguration = async () => {
         try {
-            const res = await fetch(`${API_URL}/configuration`);
+            const res = await authFetch(`${API_URL}/configuration`);
             if (res.ok) {
                 const config = await res.json();
                 if (config.primaryColor) setPrimaryColor(config.primaryColor);
@@ -93,7 +95,7 @@ export default function SettingsPage() {
             };
 
             const token = localStorage.getItem('accessToken');
-            const res = await fetch(`${API_URL}/configuration`, {
+            const res = await authFetch(`${API_URL}/configuration`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',

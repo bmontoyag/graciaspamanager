@@ -4,6 +4,10 @@ import { useEffect, useState } from 'react';
 import { Plus, Search, Edit, Trash2 } from 'lucide-react';
 import AttentionDialog from '@/components/attentions/AttentionDialog';
 import { PageContainer } from '@/components/layout/PageContainer';
+import { authFetch } from '@/lib/api';
+import { formatMoney, formatDate } from '@/lib/format';
+import { confirmDialog } from '@/components/ui/confirm-dialog';
+import { toast } from 'sonner';
 
 export default function AttentionsPage() {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -18,7 +22,7 @@ export default function AttentionsPage() {
 
     const fetchAttentions = () => {
         setLoading(true);
-        fetch(`${API_URL}/attentions`)
+        authFetch(`${API_URL}/attentions`)
             .then(res => res.json())
             .then(data => {
                 setAttentions(Array.isArray(data) ? data : []);
@@ -41,10 +45,10 @@ export default function AttentionsPage() {
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm('¿Está seguro de eliminar esta atención?')) return;
+        if (!await confirmDialog('¿Está seguro de eliminar esta atención?')) return;
 
         try {
-            const res = await fetch(`${API_URL}/attentions/${id}`, {
+            const res = await authFetch(`${API_URL}/attentions/${id}`, {
                 method: 'DELETE'
             });
             if (!res.ok) {
@@ -54,7 +58,7 @@ export default function AttentionsPage() {
             fetchAttentions();
         } catch (error: any) {
             console.error('Error deleting attention:', error);
-            alert(`Error al eliminar la atención: ${error.message}`);
+            toast.error(`Error al eliminar la atención: ${error.message}`);
         }
     };
 
@@ -105,7 +109,7 @@ export default function AttentionsPage() {
                         <input
                             type="text"
                             placeholder="Buscar por cliente o servicio..."
-                            className="bg-background border rounded-md pl-9 pr-3 py-2 w-full outline-none focus:ring-1 focus:ring-primary/50 text-sm"
+                            className="bg-card border rounded-md pl-9 pr-3 py-2 w-full outline-none focus:ring-1 focus:ring-primary/50 text-sm"
                             value={filter}
                             onChange={(e) => setFilter(e.target.value)}
                         />
@@ -118,7 +122,7 @@ export default function AttentionsPage() {
                                 type="date"
                                 value={dateFilter}
                                 onChange={(e) => setDateFilter(e.target.value)}
-                                className="bg-background border rounded-md px-2 py-1.5 text-sm outline-none w-full sm:w-[140px]"
+                                className="bg-card border rounded-md px-2 py-1.5 text-sm outline-none w-full sm:w-[140px]"
                             />
                         </div>
 
@@ -127,7 +131,7 @@ export default function AttentionsPage() {
                             <select
                                 value={serviceFilter}
                                 onChange={(e) => setServiceFilter(e.target.value)}
-                                className="bg-background border rounded-md px-2 py-1.5 text-sm outline-none w-full sm:w-[130px]"
+                                className="bg-card border rounded-md px-2 py-1.5 text-sm outline-none w-full sm:w-[130px]"
                             >
                                 <option value="all">Todos</option>
                                 {uniqueServices.map((s: any) => s.id && (
@@ -141,7 +145,7 @@ export default function AttentionsPage() {
                             <select
                                 value={therapistFilter}
                                 onChange={(e) => setTherapistFilter(e.target.value)}
-                                className="bg-background border rounded-md px-2 py-1.5 text-sm outline-none w-full sm:w-[130px]"
+                                className="bg-card border rounded-md px-2 py-1.5 text-sm outline-none w-full sm:w-[130px]"
                             >
                                 <option value="all">Todos</option>
                                 {uniqueTherapists.map((t: any) => (
@@ -175,7 +179,7 @@ export default function AttentionsPage() {
                             )}
                             {filteredAttentions.map((att) => (
                                 <tr key={att.id} className="border-b hover:bg-muted/50 transition">
-                                    <td className="p-4">{new Date(att.date).toLocaleDateString()}</td>
+                                    <td className="p-4">{formatDate(att.date)}</td>
                                     <td className="p-4 font-medium">{att.client?.name || 'Cliente Eliminado'}</td>
                                     <td className="p-4 text-muted-foreground">{att.service?.name || 'Legacy Service'}</td>
                                     <td className="p-4">
@@ -188,18 +192,20 @@ export default function AttentionsPage() {
                                             {(!att.workers || att.workers.length === 0) && <span className="text-muted-foreground">-</span>}
                                         </div>
                                     </td>
-                                    <td className="p-4 text-right font-mono">S/ {Number(att.totalCost).toFixed(2)}</td>
+                                    <td className="p-4 text-right font-mono">{formatMoney(Number(att.totalCost))}</td>
                                     <td className="p-4 text-right">
                                         <div className="flex justify-end gap-2">
                                             <button
                                                 onClick={() => handleEdit(att)}
                                                 className="p-2 hover:bg-accent rounded"
+                                                aria-label="Editar"
                                             >
                                                 <Edit className="h-4 w-4" />
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(att.id)}
                                                 className="p-2 hover:bg-accent rounded text-red-600"
+                                                aria-label="Eliminar"
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </button>

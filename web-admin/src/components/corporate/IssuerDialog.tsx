@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { X } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiFetch } from '@/lib/api';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface IssuerDialogProps {
     isOpen: boolean;
@@ -59,17 +59,13 @@ export default function IssuerDialog({ isOpen, onClose }: IssuerDialogProps) {
         }
     };
 
-    if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-card border rounded-lg p-6 w-full max-w-lg">
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-bold">Datos del Emisor</h2>
-                    <button onClick={onClose} className="hover:bg-muted rounded p-1">
-                        <X className="h-5 w-5" />
-                    </button>
-                </div>
+        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+            <DialogContent className="max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>Datos del Emisor</DialogTitle>
+                </DialogHeader>
                 <p className="text-sm text-muted-foreground mb-4">
                     Se muestran en el encabezado de las cotizaciones. El RUC solo aparece en las cotizaciones donde se active
                     &quot;Mostrar RUC del emisor&quot;.
@@ -78,29 +74,29 @@ export default function IssuerDialog({ isOpen, onClose }: IssuerDialogProps) {
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium mb-1">Nombre comercial</label>
-                        <input name="businessName" value={formData.businessName} onChange={handleChange} required className="w-full p-2 border rounded-md bg-background" />
+                        <input name="businessName" value={formData.businessName} onChange={handleChange} required className="w-full p-2 border rounded-md bg-card" />
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium mb-1">RUC</label>
-                            <input name="businessRuc" value={formData.businessRuc} onChange={handleChange} maxLength={11} className="w-full p-2 border rounded-md bg-background" />
+                            <input name="businessRuc" value={formData.businessRuc} onChange={handleChange} maxLength={11} className="w-full p-2 border rounded-md bg-card" />
                         </div>
                         <div>
                             <label className="block text-sm font-medium mb-1">Tasa IGV (%)</label>
-                            <input type="number" step="0.01" name="igvRate" value={formData.igvRate} onChange={handleChange} className="w-full p-2 border rounded-md bg-background" />
+                            <input type="number" step="0.01" name="igvRate" value={formData.igvRate} onChange={handleChange} className="w-full p-2 border rounded-md bg-card" />
                         </div>
                         <div>
                             <label className="block text-sm font-medium mb-1">Teléfono</label>
-                            <input name="businessPhone" value={formData.businessPhone} onChange={handleChange} className="w-full p-2 border rounded-md bg-background" />
+                            <input name="businessPhone" value={formData.businessPhone} onChange={handleChange} className="w-full p-2 border rounded-md bg-card" />
                         </div>
                         <div>
                             <label className="block text-sm font-medium mb-1">Email</label>
-                            <input name="businessEmail" value={formData.businessEmail} onChange={handleChange} className="w-full p-2 border rounded-md bg-background" />
+                            <input name="businessEmail" value={formData.businessEmail} onChange={handleChange} className="w-full p-2 border rounded-md bg-card" />
                         </div>
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1">Dirección</label>
-                        <input name="businessAddress" value={formData.businessAddress} onChange={handleChange} className="w-full p-2 border rounded-md bg-background" />
+                        <input name="businessAddress" value={formData.businessAddress} onChange={handleChange} className="w-full p-2 border rounded-md bg-card" />
                     </div>
 
                     <div className="flex gap-2 justify-end pt-2">
@@ -110,7 +106,7 @@ export default function IssuerDialog({ isOpen, onClose }: IssuerDialogProps) {
                         </button>
                     </div>
                 </form>
-            </div>
-        </div>
+            </DialogContent>
+        </Dialog>
     );
 }

@@ -14,6 +14,7 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import { useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { CORPORATE_EVENT_COLOR } from '@/lib/corporate';
+import { authFetch } from '@/lib/api';
 
 export default function CalendarPage() {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -37,9 +38,9 @@ export default function CalendarPage() {
         try {
             const token = localStorage.getItem('accessToken');
             const [appointmentsRes, configRes, corporateRes] = await Promise.all([
-                fetch(`${API_URL}/appointments`),
-                fetch(`${API_URL}/configuration`),
-                fetch(`${API_URL}/corporate/calendar`, {
+                authFetch(`${API_URL}/appointments`),
+                authFetch(`${API_URL}/configuration`),
+                authFetch(`${API_URL}/corporate/calendar`, {
                     headers: token ? { 'Authorization': `Bearer ${token}` } : {}
                 })
             ]);

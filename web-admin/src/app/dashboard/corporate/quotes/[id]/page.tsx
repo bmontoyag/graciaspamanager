@@ -9,6 +9,7 @@ import { PageContainer } from '@/components/layout/PageContainer';
 import QuoteForm from '@/components/corporate/QuoteForm';
 import { apiFetch } from '@/lib/api';
 import { displayQuoteStatus, formatMoney } from '@/lib/corporate';
+import { confirmDialog } from '@/components/ui/confirm-dialog';
 
 export default function QuoteDetailPage() {
     const { id } = useParams<{ id: string }>();
@@ -53,8 +54,8 @@ export default function QuoteDetailPage() {
         router.push(`/dashboard/corporate/quotes/${copy.id}`);
     });
 
-    const convert = () => {
-        if (!confirm('Se creará un evento corporativo con las jornadas y el monto de esta cotización. La cotización quedará bloqueada para edición. ¿Continuar?')) return;
+    const convert = async () => {
+        if (!await confirmDialog({ title: '¿Convertir en evento?', description: 'Se creará un evento corporativo con las jornadas y el monto de esta cotización. La cotización quedará bloqueada para edición.', confirmText: 'Convertir' })) return;
         run(async () => {
             const event = await apiFetch(`/corporate/quotes/${id}/convert`, { method: 'POST' });
             toast.success('Evento creado');

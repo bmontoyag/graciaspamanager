@@ -4,6 +4,10 @@ import { useEffect, useState } from 'react';
 import { Plus, Edit, Trash2, Tag } from 'lucide-react';
 import ServiceDialog from '@/components/services/ServiceDialog';
 import { PageContainer } from '@/components/layout/PageContainer';
+import { authFetch } from '@/lib/api';
+import { formatMoney } from '@/lib/format';
+import { confirmDialog } from '@/components/ui/confirm-dialog';
+import { toast } from 'sonner';
 
 export default function ServicesPage() {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -18,7 +22,7 @@ export default function ServicesPage() {
 
     const fetchServices = () => {
         setLoading(true);
-        fetch(`${API_URL}/services`)
+        authFetch(`${API_URL}/services`)
             .then(res => res.json())
             .then(data => {
                 setServices(Array.isArray(data) ? data : []);
@@ -32,7 +36,7 @@ export default function ServicesPage() {
     };
 
     const fetchCategories = () => {
-        fetch(`${API_URL}/service-categories`)
+        authFetch(`${API_URL}/service-categories`)
             .then(res => res.json())
             .then(data => setCategories(Array.isArray(data) ? data : []))
             .catch(err => console.error('Error fetching categories:', err));
@@ -49,11 +53,11 @@ export default function ServicesPage() {
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm('¿Está seguro de eliminar este servicio?')) return;
+        if (!await confirmDialog('¿Está seguro de eliminar este servicio?')) return;
 
         try {
             const token = localStorage.getItem('accessToken');
-            const res = await fetch(`${API_URL}/services/${id}`, {
+            const res = await authFetch(`${API_URL}/services/${id}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -63,7 +67,7 @@ export default function ServicesPage() {
             fetchServices();
         } catch (error) {
             console.error('Error deleting service:', error);
-            alert('Error al eliminar el servicio');
+            toast.error('Error al eliminar el servicio');
         }
     };
 
@@ -72,7 +76,7 @@ export default function ServicesPage() {
 
         try {
             const token = localStorage.getItem('accessToken');
-            const res = await fetch(`${API_URL}/service-categories`, {
+            const res = await authFetch(`${API_URL}/service-categories`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -87,15 +91,15 @@ export default function ServicesPage() {
             fetchCategories();
         } catch (error) {
             console.error('Error creating category:', error);
-            alert('Error al crear la categoría');
+            toast.error('Error al crear la categoría');
         }
     };
 
     const handleDeleteCategory = async (id: number) => {
-        if (!confirm('¿Está seguro de eliminar esta categoría?')) return;
+        if (!await confirmDialog('¿Está seguro de eliminar esta categoría?')) return;
         try {
             const token = localStorage.getItem('accessToken');
-            const res = await fetch(`${API_URL}/service-categories/${id}`, {
+            const res = await authFetch(`${API_URL}/service-categories/${id}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -105,7 +109,7 @@ export default function ServicesPage() {
             fetchCategories();
         } catch (error) {
             console.error('Error deleting category:', error);
-            alert('Error al eliminar la categoría');
+            toast.error('Error al eliminar la categoría');
         }
     };
 
@@ -115,7 +119,7 @@ export default function ServicesPage() {
 
         try {
             const token = localStorage.getItem('accessToken');
-            const res = await fetch(`${API_URL}/service-categories/${cat.id}`, {
+            const res = await authFetch(`${API_URL}/service-categories/${cat.id}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -127,7 +131,7 @@ export default function ServicesPage() {
             fetchCategories();
         } catch (error) {
             console.error('Error updating category:', error);
-            alert('Error al actualizar la categoría');
+            toast.error('Error al actualizar la categoría');
         }
     };
 
@@ -169,7 +173,7 @@ export default function ServicesPage() {
                             value={newCategoryName}
                             onChange={(e) => setNewCategoryName(e.target.value)}
                             placeholder="Nueva categoría"
-                            className="flex-1 p-2 border rounded-md bg-background"
+                            className="flex-1 p-2 border rounded-md bg-card"
                             onKeyPress={(e) => e.key === 'Enter' && handleAddCategory()}
                         />
                         <button
@@ -186,12 +190,14 @@ export default function ServicesPage() {
                                 <button
                                     onClick={() => handleEditCategory(cat)}
                                     className="opacity-0 group-hover:opacity-100 p-1 hover:text-blue-600 transition-opacity"
+                                    aria-label="Editar"
                                 >
                                     <Edit className="h-3 w-3" />
                                 </button>
                                 <button
                                     onClick={() => handleDeleteCategory(cat.id)}
                                     className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-600 transition-opacity"
+                                    aria-label="Eliminar"
                                 >
                                     <Trash2 className="h-3 w-3" />
                                 </button>
@@ -205,7 +211,7 @@ export default function ServicesPage() {
                 <select
                     value={filterCategory}
                     onChange={(e) => setFilterCategory(e.target.value)}
-                    className="p-2 border rounded-md bg-background"
+                    className="p-2 border rounded-md bg-card"
                 >
                     <option value="">Todas las categorías</option>
                     {categories.map(cat => (
@@ -246,7 +252,7 @@ export default function ServicesPage() {
                                         {service.category?.name || 'Sin categoría'}
                                     </td>
                                     <td className="p-4">{service.durationMin} min</td>
-                                    <td className="p-4 text-right font-mono">S/.{Number(service.price).toFixed(2)}</td>
+                                    <td className="p-4 text-right font-mono">{formatMoney(Number(service.price))}</td>
                                     <td className="p-4">
                                         <span className={`px-2 py-1 rounded text-xs ${service.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
                                             }`}>
@@ -258,12 +264,14 @@ export default function ServicesPage() {
                                             <button
                                                 onClick={() => handleEdit(service)}
                                                 className="p-2 hover:bg-accent rounded"
+                                                aria-label="Editar"
                                             >
                                                 <Edit className="h-4 w-4" />
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(service.id)}
                                                 className="p-2 hover:bg-accent rounded text-red-600"
+                                                aria-label="Eliminar"
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </button>

@@ -3,7 +3,10 @@
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { Toaster } from 'sonner';
+import { ConfirmDialogHost } from '@/components/ui/confirm-dialog';
 import './globals.css';
+import { inter, lora } from './fonts';
+import { authFetch } from '@/lib/api';
 
 export default function RootLayout({
   children,
@@ -19,7 +22,7 @@ export default function RootLayout({
     // Fetch configuration from API
     const loadConfiguration = async () => {
       try {
-        const res = await fetch(`${API_URL}/configuration`);
+        const res = await authFetch(`${API_URL}/configuration/public`);
         if (res.ok) {
           const config = await res.json();
 
@@ -46,10 +49,11 @@ export default function RootLayout({
   }, []);
 
   return (
-    <html lang="es" suppressHydrationWarning>
+    <html lang="es" className={`${inter.variable} ${lora.variable}`} suppressHydrationWarning>
       <body className="antialiased">
         {children}
-        <Toaster />
+        <Toaster richColors position="top-right" />
+        <ConfirmDialogHost />
       </body>
     </html>
   );

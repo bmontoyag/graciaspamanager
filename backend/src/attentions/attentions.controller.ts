@@ -3,7 +3,9 @@ import { AttentionsService } from './attentions.service';
 import { CreateAttentionDto } from './dto/create-attention.dto';
 import { CreateBatchAttentionDto } from './dto/create-batch.dto';
 import { UpdateAttentionDto } from './dto/update-attention.dto';
+import { RequirePermissions } from '../auth/permissions.decorator';
 
+@RequirePermissions('attentions')
 @Controller('attentions')
 export class AttentionsController {
   constructor(private readonly attentionsService: AttentionsService) {}
@@ -18,11 +20,13 @@ export class AttentionsController {
     return this.attentionsService.createBatch(createBatchAttentionDto);
   }
 
+  @RequirePermissions('attentions', 'daily_closing', 'reports')
   @Get()
   findAll() {
     return this.attentionsService.findAll();
   }
 
+  @RequirePermissions('attentions', 'daily_closing', 'reports')
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.attentionsService.findOne(+id);

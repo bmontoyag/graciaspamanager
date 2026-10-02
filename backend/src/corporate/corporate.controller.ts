@@ -7,8 +7,10 @@ import {
     AssignWorkerDto, CreateEventDayDto, CreateEventExpenseDto, CreateEventPaymentDto,
     PayWorkerDto, UpdateEventDayDto, UpdateEventDto, UpdateEventWorkerDto,
 } from './dto/event.dto';
+import { RequirePermissions } from '../auth/permissions.decorator';
 
 @UseGuards(AuthGuard('jwt'))
+@RequirePermissions('corporate')
 @Controller('corporate')
 export class CorporateController {
     constructor(
@@ -147,6 +149,7 @@ export class CorporateController {
         return this.eventsService.findPayments(from, to);
     }
 
+    @RequirePermissions('corporate', 'calendar')
     @Get('calendar')
     findCalendarDays(@Query('from') from?: string, @Query('to') to?: string) {
         return this.eventsService.findCalendarDays(from, to);

@@ -10,6 +10,8 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { authFetch } from '@/lib/api';
+import { confirmDialog } from '@/components/ui/confirm-dialog';
 
 export default function RolesPage() {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -31,7 +33,7 @@ export default function RolesPage() {
 
     const fetchRoles = async () => {
         try {
-            const res = await fetch(`${API_URL}/roles`);
+            const res = await authFetch(`${API_URL}/roles`);
             if (res.ok) {
                 const data = await res.json();
                 setRoles(data);
@@ -45,7 +47,7 @@ export default function RolesPage() {
 
     const fetchModules = async () => {
         try {
-            const res = await fetch(`${API_URL}/modules`);
+            const res = await authFetch(`${API_URL}/modules`);
             if (res.ok) {
                 const data = await res.json();
                 setModules(data);
@@ -81,7 +83,7 @@ export default function RolesPage() {
                 ? `${API_URL}/roles/${currentRole.id}`
                 : `${API_URL}/roles`;
 
-            const res = await fetch(url, {
+            const res = await authFetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),
@@ -103,9 +105,9 @@ export default function RolesPage() {
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm('Are you sure you want to delete this role?')) return;
+        if (!await confirmDialog('¿Eliminar este rol?')) return;
         try {
-            const res = await fetch(`${API_URL}/roles/${id}`, {
+            const res = await authFetch(`${API_URL}/roles/${id}`, {
                 method: 'DELETE',
             });
             if (res.ok) {
@@ -144,10 +146,10 @@ export default function RolesPage() {
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-xl font-bold">{role.name}</CardTitle>
                             <div className="flex gap-2">
-                                <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(role)}>
+                                <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(role)} aria-label="Editar">
                                     <Pencil className="h-4 w-4" />
                                 </Button>
-                                <Button variant="ghost" size="icon" className="text-red-500" onClick={() => handleDelete(role.id)}>
+                                <Button variant="ghost" size="icon" className="text-red-500" onClick={() => handleDelete(role.id)} aria-label="Eliminar">
                                     <Trash2 className="h-4 w-4" />
                                 </Button>
                             </div>

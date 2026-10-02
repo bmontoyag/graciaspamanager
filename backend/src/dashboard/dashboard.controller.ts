@@ -17,9 +17,4 @@ export class DashboardController {
     getAppointmentsToday(@Req() req) {
         return this.dashboardService.getAppointmentsToday(req.user);
     }
-
-    @Get('finance')
-    getFinanceStats() {
-        return this.dashboardService.getFinanceStats();
-    }
 }

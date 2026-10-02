@@ -3,7 +3,9 @@ import { AppointmentsService } from './appointments.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { CreateBatchAppointmentDto } from './dto/create-batch-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
+import { RequirePermissions } from '../auth/permissions.decorator';
 
+@RequirePermissions('calendar', 'attentions')
 @Controller('appointments')
 export class AppointmentsController {
     constructor(private readonly appointmentsService: AppointmentsService) { }

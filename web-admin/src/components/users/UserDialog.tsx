@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { authFetch } from '@/lib/api';
+import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface Role {
     id: number;
@@ -29,7 +31,7 @@ export default function UserDialog({ isOpen, onClose, onSave, user }: UserDialog
 
     useEffect(() => {
         // Fetch roles
-        fetch(`${API_URL}/roles`)
+        authFetch(`${API_URL}/roles`)
             .then(res => res.json())
             .then(data => setRoles(data))
             .catch(err => console.error('Error fetching roles:', err));
@@ -95,7 +97,7 @@ export default function UserDialog({ isOpen, onClose, onSave, user }: UserDialog
                 ? `${API_URL}/users/${user.id}`
                 : `${API_URL}/users`;
 
-            const res = await fetch(url, {
+            const res = await authFetch(url, {
                 method: user ? 'PATCH' : 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -104,7 +106,7 @@ export default function UserDialog({ isOpen, onClose, onSave, user }: UserDialog
             if (!res.ok) {
                 const errorData = await res.json().catch(() => ({ message: 'Error desconocido' }));
                 console.error('Error saving user:', errorData);
-                alert(`Error al guardar el usuario: ${errorData.message || JSON.stringify(errorData)}`);
+                toast.error(`Error al guardar el usuario: ${errorData.message || JSON.stringify(errorData)}`);
                 return;
             }
 
@@ -112,19 +114,17 @@ export default function UserDialog({ isOpen, onClose, onSave, user }: UserDialog
             onClose();
         } catch (error) {
             console.error('Exception saving user:', error);
-            alert(`Error al guardar el usuario: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+            toast.error(`Error al guardar el usuario: ${error instanceof Error ? error.message : 'Error desconocido'}`);
         }
     };
 
-    if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-background p-6 rounded-lg w-full max-w-md">
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-bold">{user ? 'Editar Usuario' : 'Nuevo Usuario'}</h2>
-                    <button onClick={onClose}><X className="h-5 w-5" /></button>
-                </div>
+        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+            <DialogContent className="max-w-md">
+                <DialogHeader>
+                    <DialogTitle>{user ? 'Editar Usuario' : 'Nuevo Usuario'}</DialogTitle>
+                </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
@@ -134,7 +134,7 @@ export default function UserDialog({ isOpen, onClose, onSave, user }: UserDialog
                             name="name"
                             value={formData.name}
                             onChange={handleChange}
-                            className="w-full p-2 border rounded-md bg-background"
+                            className="w-full p-2 border rounded-md bg-card"
                             required
                         />
                     </div>
@@ -146,7 +146,7 @@ export default function UserDialog({ isOpen, onClose, onSave, user }: UserDialog
                             name="email"
                             value={formData.email}
                             onChange={handleChange}
-                            className="w-full p-2 border rounded-md bg-background"
+                            className="w-full p-2 border rounded-md bg-card"
                             required
                         />
                     </div>
@@ -158,7 +158,7 @@ export default function UserDialog({ isOpen, onClose, onSave, user }: UserDialog
                             name="phoneNumber"
                             value={formData.phoneNumber}
                             onChange={handleChange}
-                            className="w-full p-2 border rounded-md bg-background"
+                            className="w-full p-2 border rounded-md bg-card"
                             placeholder="999 999 999"
                         />
                     </div>
@@ -172,7 +172,7 @@ export default function UserDialog({ isOpen, onClose, onSave, user }: UserDialog
                             name="password"
                             value={formData.password}
                             onChange={handleChange}
-                            className="w-full p-2 border rounded-md bg-background"
+                            className="w-full p-2 border rounded-md bg-card"
                             required={!user}
                         />
                     </div>
@@ -201,7 +201,7 @@ export default function UserDialog({ isOpen, onClose, onSave, user }: UserDialog
                             name="commissionPercentage"
                             value={formData.commissionPercentage}
                             onChange={handleChange}
-                            className="w-full p-2 border rounded-md bg-background"
+                            className="w-full p-2 border rounded-md bg-card"
                             min="0" max="100"
                         />
                     </div>
@@ -222,7 +222,7 @@ export default function UserDialog({ isOpen, onClose, onSave, user }: UserDialog
                         </button>
                     </div>
                 </form>
-            </div>
-        </div>
+            </DialogContent>
+        </Dialog>
     );
 }

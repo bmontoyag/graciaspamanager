@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { authFetch } from '@/lib/api';
+import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface ServiceDialogProps {
     isOpen: boolean;
@@ -24,7 +26,7 @@ export default function ServiceDialog({ isOpen, onClose, onSave, service }: Serv
 
     useEffect(() => {
         if (isOpen) {
-            fetch(`${API_URL}/service-categories`)
+            authFetch(`${API_URL}/service-categories`)
                 .then(res => res.json())
                 .then(data => setCategories(Array.isArray(data) ? data : []))
                 .catch(err => console.error('Error fetching categories:', err));
@@ -78,7 +80,7 @@ export default function ServiceDialog({ isOpen, onClose, onSave, service }: Serv
                 : `${API_URL}/services`;
 
             const token = localStorage.getItem('accessToken');
-            const res = await fetch(url, {
+            const res = await authFetch(url, {
                 method: service ? 'PATCH' : 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -97,19 +99,17 @@ export default function ServiceDialog({ isOpen, onClose, onSave, service }: Serv
             onClose();
         } catch (error: any) {
             console.error('Error saving service:', error);
-            alert(`Error al guardar el servicio: ${error.message}`);
+            toast.error(`Error al guardar el servicio: ${error.message}`);
         }
     };
 
-    if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-background p-6 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-bold">{service ? 'Editar Servicio' : 'Nuevo Servicio'}</h2>
-                    <button onClick={onClose}><X className="h-5 w-5" /></button>
-                </div>
+        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+            <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle>{service ? 'Editar Servicio' : 'Nuevo Servicio'}</DialogTitle>
+                </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
@@ -119,7 +119,7 @@ export default function ServiceDialog({ isOpen, onClose, onSave, service }: Serv
                             name="name"
                             value={formData.name}
                             onChange={handleChange}
-                            className="w-full p-2 border rounded-md bg-background"
+                            className="w-full p-2 border rounded-md bg-card"
                             required
                         />
                     </div>
@@ -130,7 +130,7 @@ export default function ServiceDialog({ isOpen, onClose, onSave, service }: Serv
                             name="description"
                             value={formData.description}
                             onChange={handleChange}
-                            className="w-full p-2 border rounded-md bg-background"
+                            className="w-full p-2 border rounded-md bg-card"
                             rows={3}
                         />
                     </div>
@@ -142,7 +142,7 @@ export default function ServiceDialog({ isOpen, onClose, onSave, service }: Serv
                                 name="categoryId"
                                 value={formData.categoryId}
                                 onChange={handleChange}
-                                className="w-full p-2 border rounded-md bg-background"
+                                className="w-full p-2 border rounded-md bg-card"
                             >
                                 <option value="">Sin categoría</option>
                                 {categories.map(cat => (
@@ -157,7 +157,7 @@ export default function ServiceDialog({ isOpen, onClose, onSave, service }: Serv
                                 name="durationMin"
                                 value={formData.durationMin}
                                 onChange={handleChange}
-                                className="w-full p-2 border rounded-md bg-background"
+                                className="w-full p-2 border rounded-md bg-card"
                                 required
                                 min="1"
                             />
@@ -172,7 +172,7 @@ export default function ServiceDialog({ isOpen, onClose, onSave, service }: Serv
                                 name="price"
                                 value={formData.price}
                                 onChange={handleChange}
-                                className="w-full p-2 border rounded-md bg-background"
+                                className="w-full p-2 border rounded-md bg-card"
                                 step="0.01"
                                 required
                                 min="0"
@@ -208,7 +208,7 @@ export default function ServiceDialog({ isOpen, onClose, onSave, service }: Serv
                         </button>
                     </div>
                 </form>
-            </div>
-        </div>
+            </DialogContent>
+        </Dialog>
     );
 }

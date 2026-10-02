@@ -4,6 +4,10 @@ import { useEffect, useState } from 'react';
 import { Plus, Search, Edit, Trash2 } from 'lucide-react';
 import ExpenseDialog from '@/components/expenses/ExpenseDialog';
 import { PageContainer } from '@/components/layout/PageContainer';
+import { authFetch } from '@/lib/api';
+import { formatMoney } from '@/lib/format';
+import { confirmDialog } from '@/components/ui/confirm-dialog';
+import { toast } from 'sonner';
 
 export default function ExpensesPage() {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -18,7 +22,7 @@ export default function ExpensesPage() {
 
     const fetchExpenses = () => {
         setLoading(true);
-        fetch(`${API_URL}/expenses`)
+        authFetch(`${API_URL}/expenses`)
             .then(res => res.json())
             .then(data => {
                 setExpenses(Array.isArray(data) ? data : []);
@@ -41,17 +45,17 @@ export default function ExpensesPage() {
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm('¿Está seguro de eliminar este gasto?')) return;
+        if (!await confirmDialog('¿Está seguro de eliminar este gasto?')) return;
 
         try {
-            const res = await fetch(`${API_URL}/expenses/${id}`, {
+            const res = await authFetch(`${API_URL}/expenses/${id}`, {
                 method: 'DELETE'
             });
             if (!res.ok) throw new Error('Failed to delete');
             fetchExpenses();
         } catch (error) {
             console.error('Error deleting expense:', error);
-            alert('Error al eliminar el gasto');
+            toast.error('Error al eliminar el gasto');
         }
     };
 
@@ -106,7 +110,7 @@ export default function ExpensesPage() {
                         <input
                             type="text"
                             placeholder="Buscar por descripción..."
-                            className="bg-background border rounded-md pl-9 pr-3 py-2 w-full outline-none focus:ring-1 focus:ring-primary/50 text-sm"
+                            className="bg-card border rounded-md pl-9 pr-3 py-2 w-full outline-none focus:ring-1 focus:ring-primary/50 text-sm"
                             value={filter}
                             onChange={(e) => setFilter(e.target.value)}
                         />
@@ -119,7 +123,7 @@ export default function ExpensesPage() {
                                 type="date"
                                 value={dateFilter}
                                 onChange={(e) => setDateFilter(e.target.value)}
-                                className="bg-background border rounded-md px-2 py-1.5 text-sm outline-none w-full sm:w-[140px]"
+                                className="bg-card border rounded-md px-2 py-1.5 text-sm outline-none w-full sm:w-[140px]"
                             />
                         </div>
 
@@ -128,7 +132,7 @@ export default function ExpensesPage() {
                             <select
                                 value={categoryFilter}
                                 onChange={(e) => setCategoryFilter(e.target.value)}
-                                className="bg-background border rounded-md px-2 py-1.5 text-sm outline-none w-full sm:w-[130px]"
+                                className="bg-card border rounded-md px-2 py-1.5 text-sm outline-none w-full sm:w-[130px]"
                             >
                                 <option value="all">Todas</option>
                                 {uniqueCategories.map((c: any) => (
@@ -142,7 +146,7 @@ export default function ExpensesPage() {
                             <select
                                 value={workerFilter}
                                 onChange={(e) => setWorkerFilter(e.target.value)}
-                                className="bg-background border rounded-md px-2 py-1.5 text-sm outline-none w-full sm:w-[130px]"
+                                className="bg-card border rounded-md px-2 py-1.5 text-sm outline-none w-full sm:w-[130px]"
                             >
                                 <option value="all">Todos</option>
                                 <option value="negocio">Negocio (General)</option>
@@ -193,18 +197,20 @@ export default function ExpensesPage() {
                                             <span className="text-muted-foreground text-xs italic">Negocio</span>
                                         )}
                                     </td>
-                                    <td className="p-4 text-right font-mono text-red-500">- S/.{Number(expense.amount).toFixed(2)}</td>
+                                    <td className="p-4 text-right font-mono text-red-500">- {formatMoney(Number(expense.amount))}</td>
                                     <td className="p-4 text-right">
                                         <div className="flex justify-end gap-2">
                                             <button
                                                 onClick={() => handleEdit(expense)}
                                                 className="p-2 hover:bg-accent rounded"
+                                                aria-label="Editar"
                                             >
                                                 <Edit className="h-4 w-4" />
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(expense.id)}
                                                 className="p-2 hover:bg-accent rounded text-red-600"
+                                                aria-label="Eliminar"
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </button>
