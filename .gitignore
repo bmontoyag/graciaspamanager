@@ -53,3 +53,6 @@ docker/postgres_data/
 *.swo
 # Datos locales de Postgres (docker-compose)
 docker/
+
+# Respaldos de deploy.sh
+.deploy-backup/
