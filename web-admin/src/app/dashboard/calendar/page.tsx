@@ -12,10 +12,14 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import { useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { CORPORATE_EVENT_COLOR } from '@/lib/corporate';
 
 export default function CalendarPage() {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const router = useRouter();
     const [appointments, setAppointments] = useState<any[]>([]);
+    const [corporateDays, setCorporateDays] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [selectedDate, setSelectedDate] = useState<string>('');
@@ -31,13 +35,20 @@ export default function CalendarPage() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [appointmentsRes, configRes] = await Promise.all([
+            const token = localStorage.getItem('accessToken');
+            const [appointmentsRes, configRes, corporateRes] = await Promise.all([
                 fetch(`${API_URL}/appointments`),
-                fetch(`${API_URL}/configuration`)
+                fetch(`${API_URL}/configuration`),
+                fetch(`${API_URL}/corporate/calendar`, {
+                    headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                })
             ]);
 
             const appointmentsData = await appointmentsRes.json();
             setAppointments(Array.isArray(appointmentsData) ? appointmentsData : []);
+
+            const corporateData = corporateRes.ok ? await corporateRes.json() : [];
+            setCorporateDays(Array.isArray(corporateData) ? corporateData : []);
 
             const configData = await configRes.json();
             if (configData) {
@@ -81,6 +92,21 @@ export default function CalendarPage() {
         }
     }));
 
+    // Jornadas corporativas (horario guardado en hora de Lima)
+    const corporateEvents = corporateDays.map(day => {
+        const dateStr = day.date.slice(0, 10);
+        const workerNames = day.workers.map((w: any) => w.worker?.name).filter(Boolean).join(', ');
+        return {
+            id: `corporate-${day.id}`,
+            title: `Corporativo: ${day.event.company?.name || day.event.title}${workerNames ? ` (${workerNames})` : ''}`,
+            start: `${dateStr}T${day.startTime}:00-05:00`,
+            end: `${dateStr}T${day.endTime}:00-05:00`,
+            backgroundColor: CORPORATE_EVENT_COLOR,
+            borderColor: CORPORATE_EVENT_COLOR,
+            extendedProps: { corporateEventId: day.event.id }
+        };
+    });
+
     const handleDateClick = (arg: any) => {
         setSelectedDate(arg.dateStr);
         setSelectedAppointment(null);
@@ -88,6 +114,11 @@ export default function CalendarPage() {
     };
 
     const handleEventClick = (info: any) => {
+        const corporateEventId = info.event.extendedProps.corporateEventId;
+        if (corporateEventId) {
+            router.push(`/dashboard/corporate/events/${corporateEventId}`);
+            return;
+        }
         const appointment = info.event.extendedProps.originalAppointment;
         if (appointment) {
             setSelectedAppointment(appointment);
@@ -130,6 +161,10 @@ export default function CalendarPage() {
                         <div className="w-4 h-4 rounded-full bg-[#dc2626]"></div>
                         <span>Cancelado / No asistió</span>
                     </div>
+                    <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded-full" style={{ backgroundColor: CORPORATE_EVENT_COLOR }}></div>
+                        <span>Evento corporativo</span>
+                    </div>
                 </div>
 
                 {loading ? (
@@ -151,7 +186,7 @@ export default function CalendarPage() {
                             week: 'Semana',
                             day: 'Día'
                         }}
-                        events={events}
+                        events={[...events, ...corporateEvents]}
                         dateClick={handleDateClick}
                         eventClick={handleEventClick}
                         editable={false}

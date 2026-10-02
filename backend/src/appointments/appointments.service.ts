@@ -5,7 +5,7 @@ import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConfigurationService } from '../configuration/configuration.service';
 import { Prisma } from '@prisma/client';
-import { getMidnightLima } from '../common/utils/date-utils';
+import { getLimaMinutes, getMidnightLima, timeToMinutes } from '../common/utils/date-utils';
 
 @Injectable()
 export class AppointmentsService {
@@ -351,6 +351,25 @@ export class AppointmentsService {
                 // Overlap check including buffer
                 if (startDate < new Date(appEnd.getTime() + bufferMs) && endDate > new Date(appStart.getTime() - bufferMs)) {
                     throw new BadRequestException(`El terapeuta ya tiene una cita ocupada (incluyendo margen de ${bufferMinutes} min) entre ${appStart.toLocaleTimeString()} y ${appEnd.toLocaleTimeString()}`);
+                }
+            }
+
+            // Jornadas corporativas asignadas al terapeuta
+            const corporateDays = await prismaClient.corporateEventDay.findMany({
+                where: {
+                    date: { gte: dayStart, lte: dayEnd },
+                    status: { not: 'CANCELLED' },
+                    event: { status: { not: 'CANCELLED' } },
+                    workers: { some: { workerId } },
+                },
+                include: { event: { select: { title: true } } },
+            });
+
+            const requestedStart = getLimaMinutes(startDate);
+            const requestedEnd = requestedStart + (endDate.getTime() - startDate.getTime()) / 60000;
+            for (const corporateDay of corporateDays) {
+                if (requestedStart < timeToMinutes(corporateDay.endTime) && requestedEnd > timeToMinutes(corporateDay.startTime)) {
+                    throw new BadRequestException(`El terapeuta está asignado al evento corporativo "${corporateDay.event.title}" de ${corporateDay.startTime} a ${corporateDay.endTime}.`);
                 }
             }
         }

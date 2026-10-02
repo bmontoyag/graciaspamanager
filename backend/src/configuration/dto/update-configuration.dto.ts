@@ -42,6 +42,14 @@ export class UpdateConfigurationDto {
     @IsInt()
     loyaltyPointsToRedeem?: number;
 
+    // Datos del emisor (cotizaciones corporativas)
+    @IsOptional() @IsString() businessName?: string;
+    @IsOptional() @IsString() businessRuc?: string;
+    @IsOptional() @IsString() businessAddress?: string;
+    @IsOptional() @IsString() businessPhone?: string;
+    @IsOptional() @IsString() businessEmail?: string;
+    @IsOptional() @IsNumber() igvRate?: number;
+
     @IsOptional()
     @IsString({ each: true })
     discoverySources?: string[];

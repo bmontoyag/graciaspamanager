@@ -24,6 +24,8 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AuditLogsModule } from './audit-logs/audit-logs.module';
 import { ExpenseTypesModule } from './expense-types/expense-types.module';
+import { CompaniesModule } from './companies/companies.module';
+import { CorporateModule } from './corporate/corporate.module';
 
 @Module({
   imports: [
@@ -46,6 +48,8 @@ import { ExpenseTypesModule } from './expense-types/expense-types.module';
     NotificationsModule,
     AuditLogsModule,
     ExpenseTypesModule,
+    CompaniesModule,
+    CorporateModule,
     ScheduleModule.forRoot(),
   ],
   controllers: [AppController],

@@ -14,6 +14,8 @@ export default function DashboardPage() {
         salesMonth: 0,
         expensesToday: 0,
         expensesMonth: 0,
+        corporateToday: 0,
+        corporateMonth: 0,
     });
     const [appointments, setAppointments] = useState<any[]>([]);
     const [upcomingBirthdays, setUpcomingBirthdays] = useState<any[]>([]);
@@ -141,6 +143,9 @@ export default function DashboardPage() {
                 <div className="bg-card border rounded-lg p-6 shadow-sm">
                     <p className="text-sm text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Ingresos Hoy</p>
                     <p className="text-3xl font-bold text-green-600">S/. {stats.salesToday.toLocaleString()}</p>
+                    {(stats.corporateToday || 0) > 0 && (
+                        <p className="text-sm text-muted-foreground mt-1">+ Corporativos: S/. {stats.corporateToday.toLocaleString()}</p>
+                    )}
                 </div>
                 <div className="bg-card border rounded-lg p-6 shadow-sm">
                     <p className="text-sm text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Gastos Hoy</p>
@@ -159,6 +164,9 @@ export default function DashboardPage() {
                 <div className="bg-card border rounded-lg p-6 shadow-sm">
                     <p className="text-sm text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Ingresos Mes</p>
                     <p className="text-3xl font-bold text-green-700">S/. {stats.salesMonth.toLocaleString()}</p>
+                    {(stats.corporateMonth || 0) > 0 && (
+                        <p className="text-sm text-muted-foreground mt-1">+ Corporativos: S/. {stats.corporateMonth.toLocaleString()}</p>
+                    )}
                 </div>
                 <div className="bg-card border rounded-lg p-6 shadow-sm">
                     <p className="text-sm text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Gastos Mes</p>
@@ -166,8 +174,8 @@ export default function DashboardPage() {
                 </div>
                 <div className="bg-card border rounded-lg p-6 shadow-sm sm:col-span-2 lg:col-span-2 flex flex-col justify-center">
                     <p className="text-sm text-primary mb-1 uppercase tracking-wider font-bold">Utilidad Neta Mensual</p>
-                    <p className={`text-4xl font-black ${stats.salesMonth - stats.expensesMonth >= 0 ? 'text-primary' : 'text-red-600'}`}>
-                        S/. {(stats.salesMonth - stats.expensesMonth).toLocaleString()}
+                    <p className={`text-4xl font-black ${stats.salesMonth + (stats.corporateMonth || 0) - stats.expensesMonth >= 0 ? 'text-primary' : 'text-red-600'}`}>
+                        S/. {(stats.salesMonth + (stats.corporateMonth || 0) - stats.expensesMonth).toLocaleString()}
                     </p>
                 </div>
             </div>

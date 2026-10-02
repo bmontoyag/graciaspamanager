@@ -86,6 +86,24 @@ export class DashboardService {
             where: expensesMonthWhere,
         });
 
+        // 7. Ingresos corporativos (cobros a empresas), solo visibles para administración
+        let corporateToday = 0;
+        let corporateMonth = 0;
+        if (!isWorker) {
+            const [corpToday, corpMonth] = await Promise.all([
+                this.prisma.payment.aggregate({
+                    _sum: { amount: true },
+                    where: { corporateEventId: { not: null }, date: { gte: today, lt: tomorrow } },
+                }),
+                this.prisma.payment.aggregate({
+                    _sum: { amount: true },
+                    where: { corporateEventId: { not: null }, date: { gte: startOfMonth } },
+                }),
+            ]);
+            corporateToday = Number(corpToday._sum.amount || 0);
+            corporateMonth = Number(corpMonth._sum.amount || 0);
+        }
+
         return {
             salesToday: Number(salesToday._sum.totalCost || 0),
             appointmentsToday,
@@ -93,6 +111,8 @@ export class DashboardService {
             salesMonth: Number(salesMonth._sum.totalCost || 0),
             expensesToday: Number(expensesToday._sum.amount || 0),
             expensesMonth: Number(expensesMonth._sum.amount || 0),
+            corporateToday,
+            corporateMonth,
         };
     }
 
@@ -138,13 +158,20 @@ export class DashboardService {
             where: { date: { gte: startOfMonth } },
         });
 
+        const corporate = await this.prisma.payment.aggregate({
+            _sum: { amount: true },
+            where: { corporateEventId: { not: null }, date: { gte: startOfMonth } },
+        });
+
         const incomeVal = Number(income._sum.totalCost || 0);
+        const corporateVal = Number(corporate._sum.amount || 0);
         const expenseVal = Number(expenses._sum.amount || 0);
 
         return {
             income: incomeVal,
+            corporateIncome: corporateVal,
             expenses: expenseVal,
-            net: incomeVal - expenseVal,
+            net: incomeVal + corporateVal - expenseVal,
         };
     }
 }

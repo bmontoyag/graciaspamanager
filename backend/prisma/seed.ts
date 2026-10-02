@@ -36,6 +36,7 @@ async function main() {
         { key: 'users', name: 'Usuarios' },
         { key: 'settings', name: 'Configuración' },
         { key: 'roles', name: 'Roles y Permisos' },
+        { key: 'corporate', name: 'Corporativo' },
     ];
 
     const allModules: any[] = [];

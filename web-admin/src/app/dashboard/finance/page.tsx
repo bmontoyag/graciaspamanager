@@ -6,7 +6,7 @@ import { PageContainer } from '@/components/layout/PageContainer';
 
 export default function FinancePage() {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-    const [stats, setStats] = useState({ income: 0, expenses: 0, net: 0 });
+    const [stats, setStats] = useState({ income: 0, corporateIncome: 0, expenses: 0, net: 0 });
 
     useEffect(() => {
         fetch(`${API_URL}/dashboard/finance`)
@@ -18,10 +18,14 @@ export default function FinancePage() {
     return (
         <PageContainer>
             <h1 className="text-3xl font-serif font-bold mb-6">Finanzas</h1>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
                 <div className="bg-card p-6 rounded-lg border shadow-sm">
                     <h3 className="uppercase text-sm font-bold text-muted-foreground">Ingresos (Mes)</h3>
                     <p className="text-3xl font-bold mt-2">${stats.income.toFixed(2)}</p>
+                </div>
+                <div className="bg-card p-6 rounded-lg border shadow-sm">
+                    <h3 className="uppercase text-sm font-bold text-muted-foreground">Ingresos Corporativos (Mes)</h3>
+                    <p className="text-3xl font-bold mt-2">${(stats.corporateIncome || 0).toFixed(2)}</p>
                 </div>
                 <div className="bg-card p-6 rounded-lg border shadow-sm">
                     <h3 className="uppercase text-sm font-bold text-muted-foreground">Egresos (Mes)</h3>

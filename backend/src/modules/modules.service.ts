@@ -26,6 +26,7 @@ export class ModulesService implements OnModuleInit {
             { key: 'settings', name: 'Configuración' },
             { key: 'daily-closing', name: 'Cierre Diario' },
             { key: 'roles', name: 'Roles y Permisos' },
+            { key: 'corporate', name: 'Corporativo' },
         ];
 
         for (const mod of defaultModules) {

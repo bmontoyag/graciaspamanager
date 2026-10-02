@@ -30,7 +30,10 @@ export class AuditInterceptor implements NestInterceptor {
                             'expenses': 'Gastos',
                             'users': 'Personal/Usuarios',
                             'services': 'Servicios',
-                            'configuration': 'Configuración'
+                            'configuration': 'Configuración',
+                            'companies': 'Empresas',
+                            'quotes': 'Cotizaciones',
+                            'events': 'Eventos Corporativos'
                         };
                         const entity = entityMap[rawEntity] || rawEntity;
 

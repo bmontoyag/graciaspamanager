@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { LayoutDashboard, Users, Calendar, Settings, LogOut, Menu, X, FileText, Package, DollarSign, ClipboardList, BarChart3, Clock, Database, ChevronDown, ChevronRight, UserCircle, Key, UserPlus, Gift, Home, Palette, User, History, MessageCircle, Megaphone } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, Settings, LogOut, Menu, X, FileText, Package, DollarSign, ClipboardList, BarChart3, Clock, Database, ChevronDown, ChevronRight, UserCircle, Key, UserPlus, Gift, Home, Palette, User, History, MessageCircle, Megaphone, Briefcase } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AutoLogout } from '@/components/layout/AutoLogout';
@@ -162,7 +162,7 @@ export default function DashboardLayout({
                         )}
 
                         {/* Business Section */}
-                        {(hasPermission('calendar') || hasPermission('attentions') || hasPermission('services') || hasPermission('clients') || hasPermission('expenses') || hasPermission('daily_closing') || hasPermission('reports')) && (
+                        {(hasPermission('calendar') || hasPermission('attentions') || hasPermission('services') || hasPermission('clients') || hasPermission('expenses') || hasPermission('daily_closing') || hasPermission('reports') || hasPermission('corporate')) && (
                             <li className="pt-4">
                                 <p className="text-xs uppercase tracking-wider opacity-60 px-2 mb-2">Negocio</p>
                             </li>
@@ -210,6 +210,15 @@ export default function DashboardLayout({
                                     </Link>
                                 </li>
                             </>
+                        )}
+
+                        {hasPermission('corporate') && (
+                            <li>
+                                <Link href="/dashboard/corporate" onClick={closeSidebar} className="flex items-center rounded-md p-2 hover:bg-white/10 transition-colors">
+                                    <Briefcase className="mr-3 h-5 w-5" />
+                                    Corporativo
+                                </Link>
+                            </li>
                         )}
 
                         {hasPermission('expenses') && (

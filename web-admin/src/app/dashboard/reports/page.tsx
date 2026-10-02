@@ -16,6 +16,7 @@ export default function ReportsPage() {
     const router = useRouter();
     const [attentions, setAttentions] = useState<any[]>([]);
     const [expenses, setExpenses] = useState<any[]>([]);
+    const [corporatePayments, setCorporatePayments] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
 
     // Filters
@@ -99,17 +100,25 @@ export default function ReportsPage() {
     const fetchReportData = async () => {
         setLoading(true);
         try {
-            const [attentionsRes, expensesRes] = await Promise.all([
+            // Calculate date range based on month/year
+            const year = parseInt(selectedYear);
+            const month = parseInt(selectedMonth);
+            const pad = (n: number) => String(n).padStart(2, '0');
+            const fromStr = `${year}-${pad(month + 1)}-01`;
+            const toStr = `${year}-${pad(month + 1)}-${pad(new Date(year, month + 1, 0).getDate())}`;
+            const token = localStorage.getItem('accessToken');
+
+            const [attentionsRes, expensesRes, corporateRes] = await Promise.all([
                 fetch(`${API_URL}/attentions`),
-                fetch(`${API_URL}/expenses`)
+                fetch(`${API_URL}/expenses`),
+                fetch(`${API_URL}/corporate/payments?from=${fromStr}&to=${toStr}`, {
+                    headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                })
             ]);
 
             let attentionsData = await attentionsRes.json();
             let expensesData = await expensesRes.json();
-
-            // Calculate date range based on month/year
-            const year = parseInt(selectedYear);
-            const month = parseInt(selectedMonth);
+            const corporateData = corporateRes.ok ? await corporateRes.json() : [];
             const startDate = new Date(year, month, 1);
             const endDate = new Date(year, month + 1, 0, 23, 59, 59);
 
@@ -132,10 +141,12 @@ export default function ReportsPage() {
 
             setAttentions(attentionsData);
             setExpenses(expensesData);
+            setCorporatePayments(Array.isArray(corporateData) ? corporateData : []);
         } catch (error) {
             console.error('Error fetching report data:', error);
             setAttentions([]);
             setExpenses([]);
+            setCorporatePayments([]);
         } finally {
             setLoading(false);
         }
@@ -143,8 +154,9 @@ export default function ReportsPage() {
 
     // Calculate metrics
     const totalIncome = attentions.reduce((sum, att) => sum + Number(att.totalCost || 0), 0);
+    const corporateIncome = corporatePayments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
     const totalExpenses = expenses.reduce((sum, exp) => sum + Number(exp.amount || 0), 0);
-    const netProfit = totalIncome - totalExpenses;
+    const netProfit = totalIncome + corporateIncome - totalExpenses;
     const totalClients = new Set(attentions.map(att => att.clientId)).size;
     const totalAttentions = attentions.length;
 
@@ -344,13 +356,21 @@ export default function ReportsPage() {
             ) : (
                 <>
                     {/* Summary Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
                         <div className="bg-card border rounded-lg p-4 shadow-sm">
                             <div className="flex items-center justify-between mb-2">
                                 <span className="text-sm text-muted-foreground">Ingresos</span>
                                 <TrendingUp className="h-4 w-4 text-green-600" />
                             </div>
                             <p className="text-2xl font-bold text-green-600">S/ {totalIncome.toFixed(2)}</p>
+                        </div>
+
+                        <div className="bg-card border rounded-lg p-4 shadow-sm">
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-sm text-muted-foreground">Ingresos Corporativos</span>
+                                <TrendingUp className="h-4 w-4 text-green-600" />
+                            </div>
+                            <p className="text-2xl font-bold text-green-600">S/ {corporateIncome.toFixed(2)}</p>
                         </div>
 
                         <div className="bg-card border rounded-lg p-4 shadow-sm">

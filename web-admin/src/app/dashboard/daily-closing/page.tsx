@@ -56,8 +56,9 @@ export default function DailyClosingPage() {
                 return safeGetDate(att.date) === dateStr;
             });
 
+            // Los gastos de eventos corporativos no forman parte de la caja diaria del local
             const filteredExpenses = (Array.isArray(expensesData) ? expensesData : []).filter((exp: any) => {
-                return safeGetDate(exp.date) === dateStr;
+                return safeGetDate(exp.date) === dateStr && !exp.corporateEventId;
             });
 
             setAttentions(filteredAttentions);
