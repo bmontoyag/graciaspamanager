@@ -53,6 +53,7 @@ export class AuditInterceptor implements NestInterceptor {
                         // Evitar auditar rutas sensibles o inútiles
                         if (originalUrl.includes('/auth/')) return;
                         if (originalUrl.includes('/audit')) return;
+                        if (originalUrl.includes('/notifications/')) return;
 
                         // NestJS con Passport a veces no puebla req.user en Interceptors globales fácilmente 
                         // para el ciclo de vida, lo decodificamos manual como un fallback seguro

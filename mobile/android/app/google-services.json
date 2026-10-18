@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "632369139513",
+    "project_id": "gracia-spa-f23a7",
+    "storage_bucket": "gracia-spa-f23a7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:632369139513:android:74e03100c1cdad8e86e2e8",
+        "android_client_info": {
+          "package_name": "pe.graciaspa.gracia_spa"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyANn0J8fktIklxjO_H4BMfgrySigOJIWAM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

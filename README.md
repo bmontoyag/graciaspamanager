@@ -3,7 +3,7 @@
 ## Project Structure
 - **backend/**: NestJS Microservices/Monolith.
 - **web-admin/**: Next.js Web Administration Portal.
-- **mobile/**: Flutter Mobile App (ToDo).
+- **mobile/**: Flutter mobile app for Android and iOS (see `mobile/README.md`).
 - **docker/**: Infrastructure configuration.
 
 ## Prerequisites
@@ -43,6 +43,15 @@ Start the development server:
 npm run dev
 ```
 Access the admin panel at http://localhost:3000.
+
+### 4. Mobile App
+Navigate to `mobile/` and run it on a device or emulator:
+```bash
+cd mobile
+flutter pub get
+flutter run --dart-define=API_URL=http://<your-ip>:3001
+```
+Without `API_URL` the app uses the production backend. See `mobile/README.md` for builds.
 
 ## Features Implemented (MVP)
 - **Backend**: Auth Module structure, Prisma Schema (Users, Clients, Appointments).

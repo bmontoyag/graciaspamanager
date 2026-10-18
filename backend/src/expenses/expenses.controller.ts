@@ -1,18 +1,24 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, Req } from '@nestjs/common';
 import { ExpensesService } from './expenses.service';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
 import { RequirePermissions } from '../auth/permissions.decorator';
+import { ActivityNotifier } from '../notifications/activity-notifier.service';
 
 @RequirePermissions('expenses')
 @Controller('expenses')
 export class ExpensesController {
-  constructor(private readonly expensesService: ExpensesService) {}
+  constructor(
+    private readonly expensesService: ExpensesService,
+    private readonly activityNotifier: ActivityNotifier,
+  ) {}
 
   @RequirePermissions('expenses', 'daily_closing')
   @Post()
-  create(@Body() createExpenseDto: CreateExpenseDto) {
-    return this.expensesService.create(createExpenseDto);
+  async create(@Body() createExpenseDto: CreateExpenseDto, @Req() req) {
+    const expense = await this.expensesService.create(createExpenseDto);
+    this.activityNotifier.expenseCreated(req.user, expense.id);
+    return expense;
   }
 
   @RequirePermissions('expenses', 'daily_closing', 'reports')

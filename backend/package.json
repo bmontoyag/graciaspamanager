@@ -38,6 +38,7 @@
     "class-validator": "^0.14.3",
     "csv-parse": "^6.1.0",
     "dotenv": "^17.3.1",
+    "firebase-admin": "^14.5.0",
     "jsonwebtoken": "^9.0.3",
     "nodemailer": "^10.0.13",
     "passport": "^0.7.0",

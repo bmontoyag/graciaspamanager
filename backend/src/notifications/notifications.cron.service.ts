@@ -45,13 +45,12 @@ export class NotificationsCronService {
 
         for (const task of pendingTasks) {
             try {
-                // Obtenemos el targetUser para no disparar vacíos
-                const targetUser = await this.prisma.user.findUnique({
-                    where: { id: task.targetUserId },
-                    select: { pushToken: true }
+                // Sin dispositivos registrados no hay a dónde enviar
+                const devices = await this.prisma.deviceToken.count({
+                    where: { userId: task.targetUserId },
                 });
 
-                if (!targetUser?.pushToken) {
+                if (devices === 0) {
                     this.logger.warn(`Usuario ${task.targetUserId} no tiene token, marcando como cancelada.`);
                     await this.prisma.notificationTask.update({
                         where: { id: task.id },
