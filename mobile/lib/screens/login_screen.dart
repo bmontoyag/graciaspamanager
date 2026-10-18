@@ -20,10 +20,31 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _loading = false;
   String? _error;
 
+  /// 'huella digital' / 'Face ID' si el dispositivo lo soporta; null si no.
+  String? _biometricLabel;
+  bool _biometricEnabled = false;
+
   @override
   void initState() {
     super.initState();
-    _error = context.read<Session>().logoutReason;
+    final session = context.read<Session>();
+    _error = session.logoutReason;
+    _initBiometrics(autoPrompt: session.logoutReason == null);
+  }
+
+  Future<void> _initBiometrics({required bool autoPrompt}) async {
+    final biometrics = context.read<Session>().biometrics;
+    if (!await biometrics.isAvailable()) return;
+    final label = await biometrics.label();
+    final enabled = await biometrics.isEnabled();
+    final email = await biometrics.enabledEmail();
+    if (!mounted) return;
+    setState(() {
+      _biometricLabel = label;
+      _biometricEnabled = enabled;
+      if (email != null && _email.text.isEmpty) _email.text = email;
+    });
+    if (enabled && autoPrompt) _loginWithBiometrics();
   }
 
   Future<void> _login() async {
@@ -33,12 +54,61 @@ class _LoginScreenState extends State<LoginScreen> {
       _error = null;
     });
     try {
-      await context.read<Session>().login(_email.text, _password.text);
+      await context.read<Session>().login(_email.text, _password.text, onAuthenticated: _offerBiometrics);
     } catch (e) {
       if (mounted) setState(() => _error = '$e');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Future<void> _loginWithBiometrics() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      await context.read<Session>().loginWithBiometrics();
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = '$e';
+          _biometricEnabled = false;
+        });
+        _initBiometrics(autoPrompt: false);
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  /// Tras un ingreso con contraseña, ofrece activar (o actualizar) el ingreso biométrico.
+  Future<void> _offerBiometrics() async {
+    final label = _biometricLabel;
+    if (label == null || !mounted) return;
+    final biometrics = context.read<Session>().biometrics;
+    final email = _email.text.trim();
+    final savedEmail = await biometrics.enabledEmail();
+    if (savedEmail?.toLowerCase() == email.toLowerCase()) {
+      // Mantiene la contraseña guardada al día.
+      await biometrics.enable(email, _password.text);
+      return;
+    }
+    if (!mounted) return;
+    final accept = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        icon: Icon(label == 'huella digital' ? Icons.fingerprint : Icons.face),
+        title: Text('¿Ingresar con $label?'),
+        content: Text('La próxima vez podrá ingresar con su $label sin escribir la contraseña.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Ahora no')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Activar')),
+        ],
+      ),
+    );
+    if (accept == true) await biometrics.enable(email, _password.text);
   }
 
   Future<void> _editServer() async {
@@ -162,6 +232,15 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ])
                                   : const Text('Iniciar sesión'),
                             ),
+                            if (_biometricEnabled && _biometricLabel != null) ...[
+                              const SizedBox(height: 12),
+                              OutlinedButton.icon(
+                                onPressed: _loading ? null : _loginWithBiometrics,
+                                style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
+                                icon: Icon(_biometricLabel == 'huella digital' ? Icons.fingerprint : Icons.face),
+                                label: Text('Ingresar con $_biometricLabel'),
+                              ),
+                            ],
                           ]),
                         ),
                       ),

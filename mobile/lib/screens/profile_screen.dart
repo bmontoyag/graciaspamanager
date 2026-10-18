@@ -24,8 +24,33 @@ class _ProfileScreenState extends State<ProfileScreen> with LoaderMixin {
   bool _showPassword = false;
   bool _savingProfile = false;
   bool _savingPassword = false;
+  String? _biometricLabel;
+  bool _biometricEnabled = false;
 
   int get _userId => context.session.user!.id;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBiometrics();
+  }
+
+  Future<void> _loadBiometrics() async {
+    final biometrics = context.session.biometrics;
+    if (!await biometrics.isAvailable()) return;
+    final label = await biometrics.label();
+    final enabled = await biometrics.isEnabled();
+    if (!mounted) return;
+    setState(() {
+      _biometricLabel = label;
+      _biometricEnabled = enabled;
+    });
+  }
+
+  Future<void> _disableBiometrics() async {
+    await context.session.biometrics.disable();
+    if (mounted) setState(() => _biometricEnabled = false);
+  }
 
   @override
   Future<void> fetch() async {
@@ -54,8 +79,12 @@ class _ProfileScreenState extends State<ProfileScreen> with LoaderMixin {
   Future<void> _savePassword() async {
     if (!_passwordKey.currentState!.validate()) return;
     setState(() => _savingPassword = true);
+    final session = context.session;
     final ok = await runAction(
-      () => context.api.patch('/users/$_userId', {'password': _password.text}),
+      () async {
+        await context.api.patch('/users/$_userId', {'password': _password.text});
+        await session.biometrics.update(password: _password.text);
+      },
       success: 'Contraseña actualizada correctamente',
     );
     if (!mounted) return;
@@ -130,6 +159,22 @@ class _ProfileScreenState extends State<ProfileScreen> with LoaderMixin {
                 ]),
               ),
             ),
+            if (_biometricLabel != null) ...[
+              const SizedBox(height: 16),
+              SectionCard(
+                title: 'Ingreso con $_biometricLabel',
+                icon: _biometricLabel == 'huella digital' ? Icons.fingerprint : Icons.face,
+                child: SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: _biometricEnabled,
+                  title: Text(_biometricEnabled ? 'Activado en este dispositivo' : 'Desactivado'),
+                  subtitle: _biometricEnabled
+                      ? null
+                      : const Text('Para activarlo, cierre sesión e ingrese con su contraseña.'),
+                  onChanged: _biometricEnabled ? (_) => _disableBiometrics() : null,
+                ),
+              ),
+            ],
           ])),
     );
   }

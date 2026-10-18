@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'api_client.dart';
+import 'biometric_auth.dart';
 import 'config.dart';
 
 /// Usuario autenticado (respuesta de `POST /auth/login`).
@@ -45,11 +46,13 @@ class SessionUser {
 /// Estado de la sesión: token, usuario, permisos y cierre por inactividad.
 class Session extends ChangeNotifier {
   Session(this.api, {FlutterSecureStorage? storage}) : _storage = storage ?? const FlutterSecureStorage() {
+    biometrics = BiometricAuth(_storage);
     api.onUnauthorized = () => logout(reason: 'Su sesión expiró. Inicie sesión nuevamente.');
   }
 
   final ApiClient api;
   final FlutterSecureStorage _storage;
+  late final BiometricAuth biometrics;
 
   static const _tokenKey = 'accessToken';
   static const _userKey = 'user';
@@ -91,12 +94,16 @@ class Session extends ChangeNotifier {
   }
 
   /// Lanza [ApiException] si las credenciales no son válidas.
-  Future<void> login(String email, String password) async {
+  ///
+  /// [onAuthenticated] se ejecuta con credenciales válidas, antes de entrar a la app
+  /// (mientras la pantalla de login sigue montada).
+  Future<void> login(String email, String password, {Future<void> Function()? onAuthenticated}) async {
     api.token = null;
     try {
       final data = await api.post('/auth/login', {'email': email.trim(), 'password': password});
       final token = data['access_token'] as String;
       final loggedUser = SessionUser.fromJson(Map<String, dynamic>.from(data['user'] as Map));
+      await onAuthenticated?.call();
       api.token = token;
       user = loggedUser;
       logoutReason = null;
@@ -107,6 +114,22 @@ class Session extends ChangeNotifier {
     } on ApiException catch (e) {
       if (e.statusCode == 401) throw ApiException('Correo o contraseña incorrectos.', statusCode: 401);
       rethrow;
+    }
+  }
+
+  /// Devuelve false si el usuario canceló la biometría.
+  Future<bool> loginWithBiometrics() async {
+    final credentials = await biometrics.unlock();
+    if (credentials == null) return false;
+    try {
+      await login(credentials.email, credentials.password);
+      return true;
+    } on ApiException catch (e) {
+      if (e.statusCode != 401) rethrow;
+      // La contraseña cambió desde otro dispositivo o la web.
+      await biometrics.disable();
+      throw ApiException('Su contraseña cambió. Ingrese con su contraseña para reactivar el ingreso biométrico.',
+          statusCode: 401);
     }
   }
 
@@ -133,6 +156,7 @@ class Session extends ChangeNotifier {
       permissions: u.permissions,
     );
     await _storage.write(key: _userKey, value: jsonEncode(user!.toJson()));
+    if (email != null) await biometrics.update(email: email);
     notifyListeners();
   }
 
