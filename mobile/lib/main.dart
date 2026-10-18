@@ -6,19 +6,24 @@ import 'package:provider/provider.dart';
 import 'core/api_client.dart';
 import 'core/branding.dart';
 import 'core/config.dart';
+import 'core/push_notifications.dart';
 import 'core/session.dart';
 import 'navigation.dart';
 import 'screens/login_screen.dart';
+import 'widgets/app_loader.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('es');
   final api = ApiClient(baseUrl: await AppConfig.loadApiUrl());
-  final session = Session(api);
+  final push = PushNotifications(api);
+  final session = Session(api, push: push);
   final branding = Branding(api);
-  await session.restore();
-  branding.load();
+  // La app se muestra de inmediato con el loader mientras se restaura la sesión.
   runApp(GraciaSpaApp(session: session, branding: branding));
+  branding.load();
+  await push.init();
+  session.restore();
 }
 
 class GraciaSpaApp extends StatefulWidget {
@@ -57,10 +62,20 @@ class _GraciaSpaAppState extends State<GraciaSpaApp> with WidgetsBindingObserver
         ChangeNotifierProvider.value(value: widget.branding),
       ],
       child: Consumer2<Session, Branding>(builder: (context, session, branding, _) {
+        if (session.restoring) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            theme: branding.theme(),
+            home: const SplashScreen(),
+          );
+        }
         final loggedIn = session.isLoggedIn;
+        // Si se abrió la app desde una notificación, se muestra su pantalla al entrar.
+        if (loggedIn) WidgetsBinding.instance.addPostFrameCallback((_) => session.push?.openPendingRoute());
         return MaterialApp(
           // Al iniciar o cerrar sesión se crea un historial de navegación nuevo.
           key: ValueKey(loggedIn ? 'user-${session.user!.id}' : 'guest'),
+          navigatorKey: loggedIn ? session.push?.navigatorKey : null,
           title: 'Gracia Spa',
           debugShowCheckedModeBanner: false,
           theme: branding.theme(),

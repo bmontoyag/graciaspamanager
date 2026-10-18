@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/constants.dart';
+import 'app_loader.dart';
 
 void showSuccess(BuildContext context, String message) {
   ScaffoldMessenger.of(context)
@@ -118,10 +119,7 @@ class LoadingView extends StatelessWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const CircularProgressIndicator(),
-          if (message != null) ...[const SizedBox(height: 12), Text(message!, textAlign: TextAlign.center)],
-        ]),
+        child: AppLoader(message: message),
       ),
     );
   }

@@ -7,6 +7,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'api_client.dart';
 import 'biometric_auth.dart';
 import 'config.dart';
+import 'push_notifications.dart';
 
 /// Usuario autenticado (respuesta de `POST /auth/login`).
 class SessionUser {
@@ -45,12 +46,13 @@ class SessionUser {
 
 /// Estado de la sesión: token, usuario, permisos y cierre por inactividad.
 class Session extends ChangeNotifier {
-  Session(this.api, {FlutterSecureStorage? storage}) : _storage = storage ?? const FlutterSecureStorage() {
+  Session(this.api, {this.push, FlutterSecureStorage? storage}) : _storage = storage ?? const FlutterSecureStorage() {
     biometrics = BiometricAuth(_storage);
     api.onUnauthorized = () => logout(reason: 'Su sesión expiró. Inicie sesión nuevamente.');
   }
 
   final ApiClient api;
+  final PushNotifications? push;
   final FlutterSecureStorage _storage;
   late final BiometricAuth biometrics;
 
@@ -83,6 +85,7 @@ class Session extends ChangeNotifier {
         api.token = token;
         user = SessionUser.fromJson(jsonDecode(rawUser) as Map<String, dynamic>);
         _startInactivityTimer();
+        unawaited(push?.register());
       }
     } catch (_) {
       api.token = null;
@@ -110,6 +113,7 @@ class Session extends ChangeNotifier {
       await _storage.write(key: _tokenKey, value: token);
       await _storage.write(key: _userKey, value: jsonEncode(loggedUser.toJson()));
       _startInactivityTimer();
+      unawaited(push?.register());
       notifyListeners();
     } on ApiException catch (e) {
       if (e.statusCode == 401) throw ApiException('Correo o contraseña incorrectos.', statusCode: 401);
@@ -136,6 +140,9 @@ class Session extends ChangeNotifier {
   Future<void> logout({String? reason}) async {
     _inactivityTimer?.cancel();
     if (user == null && api.token == null) return;
+    // Solo el cierre manual deja de recibir avisos: tras inactividad o expiración el
+    // dispositivo sigue registrado. La petición sale antes de borrar el token.
+    if (reason == null) unawaited(push?.unregister());
     api.token = null;
     user = null;
     logoutReason = reason;

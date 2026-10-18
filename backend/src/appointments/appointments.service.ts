@@ -69,6 +69,15 @@ export class AppointmentsService {
         });
     }
 
+    /** Monto del adelanto registrado para la cita (0 si no tiene). */
+    async getAdvanceAmount(appointmentId: number): Promise<number> {
+        const advance = await this.prisma.payment.findFirst({
+            where: { appointmentId, type: 'ADVANCE' },
+            select: { amount: true },
+        });
+        return Number(advance?.amount ?? 0);
+    }
+
     async createBatch(createBatchDto: CreateBatchAppointmentDto) {
         const { date, clientId, status, notes, services, advanceAmount, paymentMethod } = createBatchDto;
         const initialDate = new Date(date);
