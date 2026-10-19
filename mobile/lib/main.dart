@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
@@ -41,17 +42,26 @@ class _GraciaSpaAppState extends State<GraciaSpaApp> with WidgetsBindingObserver
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    HardwareKeyboard.instance.addHandler(_onKey);
+  }
+
+  /// Teclado físico (tablets): escribir también cuenta como actividad.
+  bool _onKey(KeyEvent event) {
+    widget.session.registerActivity();
+    return false;
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    HardwareKeyboard.instance.removeHandler(_onKey);
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) widget.session.checkInactivity();
+    if (state == AppLifecycleState.paused) widget.session.saveLastActivity();
   }
 
   @override

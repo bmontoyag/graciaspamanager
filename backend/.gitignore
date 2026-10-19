@@ -59,3 +59,4 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # Clave de la cuenta de servicio de Firebase (notificaciones push)
 firebase-service-account*.json
+*firebase-adminsdk*.json

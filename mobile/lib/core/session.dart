@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'api_client.dart';
 import 'biometric_auth.dart';
@@ -58,6 +59,7 @@ class Session extends ChangeNotifier {
 
   static const _tokenKey = 'accessToken';
   static const _userKey = 'user';
+  static const _lastActivityKey = 'lastActivity';
 
   SessionUser? user;
   bool restoring = true;
@@ -82,6 +84,12 @@ class Session extends ChangeNotifier {
       final token = await _storage.read(key: _tokenKey);
       final rawUser = await _storage.read(key: _userKey);
       if (token != null && rawUser != null) {
+        if (await _expiredWhileClosed()) {
+          await _storage.delete(key: _tokenKey);
+          await _storage.delete(key: _userKey);
+          logoutReason = _inactivityMessage;
+          return;
+        }
         api.token = token;
         user = SessionUser.fromJson(jsonDecode(rawUser) as Map<String, dynamic>);
         _startInactivityTimer();
@@ -177,14 +185,33 @@ class Session extends ChangeNotifier {
   void checkInactivity() {
     if (!isLoggedIn) return;
     if (DateTime.now().difference(_lastActivity) >= const Duration(minutes: AppConfig.inactivityTimeoutMinutes)) {
-      logout(reason: 'Sesión cerrada por inactividad tras ${AppConfig.inactivityTimeoutMinutes} minutos.');
+      logout(reason: _inactivityMessage);
     }
   }
+
+  /// Se llama al pasar a segundo plano: si el sistema cierra la app, al reabrirla se
+  /// compara con esta hora para no restaurar una sesión inactiva.
+  Future<void> saveLastActivity() async {
+    if (!isLoggedIn) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_lastActivityKey, _lastActivity.millisecondsSinceEpoch);
+  }
+
+  Future<bool> _expiredWhileClosed() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getInt(_lastActivityKey);
+    if (saved == null) return false;
+    final elapsed = DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(saved));
+    return elapsed >= const Duration(minutes: AppConfig.inactivityTimeoutMinutes);
+  }
+
+  static String get _inactivityMessage =>
+      'Sesión cerrada por inactividad tras ${AppConfig.inactivityTimeoutLabel}.';
 
   void _startInactivityTimer() {
     _lastActivity = DateTime.now();
     _inactivityTimer?.cancel();
-    _inactivityTimer = Timer.periodic(const Duration(seconds: 30), (_) => checkInactivity());
+    _inactivityTimer = Timer.periodic(const Duration(seconds: 5), (_) => checkInactivity());
   }
 
   @override

@@ -245,7 +245,7 @@ export default function DashboardLayout({
             {/* Main Content */}
             <main className="flex-1 overflow-auto md:ml-0">
                 <div className="md:hidden h-16" /> {/* Spacer for mobile menu button */}
-                <AutoLogout timeoutMinutes={15}>
+                <AutoLogout timeoutMinutes={1}>
                     {canViewPage ? children : (
                         <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 px-4 text-center">
                             <div className="rounded-full bg-muted p-4 text-muted-foreground">

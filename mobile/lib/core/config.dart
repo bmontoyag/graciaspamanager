@@ -15,7 +15,10 @@ class AppConfig {
   static const _apiUrlKey = 'apiUrl';
 
   /// Minutos de inactividad antes de cerrar la sesión (igual que la web).
-  static const int inactivityTimeoutMinutes = 15;
+  static const int inactivityTimeoutMinutes = 1;
+
+  static String get inactivityTimeoutLabel =>
+      inactivityTimeoutMinutes == 1 ? '1 minuto' : '$inactivityTimeoutMinutes minutos';
 
   static Future<String> loadApiUrl() async {
     final prefs = await SharedPreferences.getInstance();
